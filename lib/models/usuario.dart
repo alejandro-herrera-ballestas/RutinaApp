@@ -1,6 +1,6 @@
 import 'dart:ffi';
 
-class Usuario {
+abstract class Usuario {
   String id;
   String nombre;
   Int edad;
