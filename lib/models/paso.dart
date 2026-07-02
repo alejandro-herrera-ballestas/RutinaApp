@@ -1,3 +1,3 @@
-class paso extends actividad  {
+class Paso extends Actividad  {
 
 }
