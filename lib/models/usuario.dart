@@ -1,9 +1,9 @@
-import 'dart:ffi';
+
 
 abstract class Usuario {
   String id;
   String nombre;
-  Int edad;
+  int edad;
 
   Usuario({
     required this.id,
@@ -11,4 +11,7 @@ abstract class Usuario {
     required this.edad,
   });
 
+  void mostrarinfo(){
+
+  }
 }
