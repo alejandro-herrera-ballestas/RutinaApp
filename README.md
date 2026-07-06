@@ -108,7 +108,3 @@ Más que una aplicación, RutinaApp busca ser una herramienta que facilite la au
 **Alejandro Herrera Ballestas**
 
 ---
-
-## 📄 Licencia
-
-Este proyecto se distribuye bajo la licencia MIT.
