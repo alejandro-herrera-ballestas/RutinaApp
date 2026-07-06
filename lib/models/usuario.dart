@@ -10,7 +10,7 @@ abstract class Usuario {
     required this.nombre,
     required this.fechaNacimiento,
     required this.fotoPerfil,
-    required this.id;
+    required this.id,
   });
 
   void obtenerEdad () {
@@ -40,7 +40,7 @@ abstract class Usuario {
     }
 
     void cambiarNombre () {
-    print("Ingrese su nuevo nombre: ");
+    print("Ingrese su nombre: ");
     String? leerNombre = stdin.readLineSync();
     if (leerNombre != null && leerNombre.isNotEmpty) {
       nombre = leerNombre;
@@ -71,6 +71,5 @@ abstract class Usuario {
   }
 
   void mostrarInformacion(){}
-
 
 }

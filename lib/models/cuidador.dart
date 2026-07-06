@@ -8,13 +8,17 @@ class Cuidador extends Usuario {
   List<Paciente> pacientes;
 
   Cuidador({
+
     required this.correo,
     required this.telefono,
     required this.pacientes,
+
+    // extiende de usuario:
     required super.nombre,
     required super.fechaNacimiento,
     required super.fotoPerfil,
-  })
+    required super.id,
+  });
 
   void agregarPaciente(Paciente nuevoPaciente) {
     for (Paciente pacienteExistente in pacientes) {
@@ -23,10 +27,24 @@ class Cuidador extends Usuario {
         return;
       }
     }
-
     pacientes.add(nuevoPaciente);
     print("Paciente agregado correctamente.");
   }
+
+  void eliminarPaciente(Paciente paciente) {
+    for (int i = 0; i < pacientes.length; i++) {
+      if (pacientes[i].id == paciente.id) {
+        pacientes.removeAt(i);
+        print("Paciente eliminado con éxito");
+        return;
+      }
+    }
+
+    print("Paciente no encontrado");
+  }
+
+
+
 
 
 }
