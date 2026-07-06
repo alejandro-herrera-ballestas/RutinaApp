@@ -1,5 +1,4 @@
 import  'dart:io';    // stdin.readLineSync para leer
-import 'package:uuid/uuid.dart'; // para generar id unico
 
 abstract class Usuario {
   String id;
@@ -11,7 +10,8 @@ abstract class Usuario {
     required this.nombre,
     required this.fechaNacimiento,
     required this.fotoPerfil,
-  }): id = Uuid().v4(); // Generar un ID único al crear un usuario
+    required this.id;
+  });
 
   void obtenerEdad () {
     print("Ingrese su fecha de nacimiento en formato yyyy-mm-dd: ");
@@ -50,6 +50,15 @@ abstract class Usuario {
     }
   }
 
+  void preguntarID  ()  {
+    print("Ingrese el ID del usuario: ");
+    String? leerIdUsuario = stdin.readLineSync();
+    if(leerIdUsuario != null && leerIdUsuario.isNotEmpty) {
+      id = leerIdUsuario;
+      print("Nombre actualizado a: $id");
+    }
+  }
+
   void cambiarFotoPerfil () {
     print("Ingrese la ruta de su nueva foto de perfil: ");
     String? leerFoto = stdin.readLineSync();
@@ -61,12 +70,7 @@ abstract class Usuario {
     }
   }
 
-  void mostrarInformacion() {
-    print("ID: $id");
-    print("Nombre: $nombre");
-    print("Fecha de Nacimiento: ${fechaNacimiento.toLocal()}");
-    print("Foto de Perfil: ${fotoPerfil ?? 'No registrada'}");
-  }
+  void mostrarInformacion(){}
 
 
 }
