@@ -10,6 +10,6 @@ class Paso  {
     required this.orden,
     required this.descripcion,
     required this.completado,
-  })
+  });
 
 }

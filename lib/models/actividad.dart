@@ -1,24 +1,14 @@
-import 'dart:ffi';
-
-import 'package:rutina_app/models/paso.dart';
-
 class Actividad {
 
-  Int id;
-  String titulo;
+  String id;
+  String nombre;
   String descripcion;
-  String horaInicio;
-  String horaFinal;
-  bool estado;
-  List<Paso>pasos;
+  String rutaIMG;   // ruta de la imagen (galeria o tomar foto)
 
   Actividad({
     required this.id,
-    required this.titulo,
+    required this.nombre,
     required this.descripcion,
-    required this.horaInicio,
-    required this.horaFinal,
-    required this.estado,
-    required this.pasos,
-});
+    required this.rutaIMG,
+  });
 }

@@ -1,3 +1,4 @@
+import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/paciente.dart';
 import 'package:rutina_app/models/usuario.dart';
 
@@ -20,31 +21,37 @@ class Cuidador extends Usuario {
     required super.id,
   });
 
-  void agregarPaciente(Paciente nuevoPaciente) {
+  bool agregarPaciente(Paciente nuevoPaciente) {
     for (Paciente pacienteExistente in pacientes) {
       if (pacienteExistente.id == nuevoPaciente.id) {
-        print("Actualmente ya hay un paciente con este ID. Imposible registrar.");
-        return;
+        return false; // se encontraron 2 iguales... no se agrega
       }
     }
     pacientes.add(nuevoPaciente);
-    print("Paciente agregado correctamente.");
+    return true; // no se encontraron 2 iguales
   }
 
-  void eliminarPaciente(Paciente paciente) {
+  bool eliminarPaciente(Paciente paciente) {
     for (int i = 0; i < pacientes.length; i++) {
       if (pacientes[i].id == paciente.id) {
         pacientes.removeAt(i);
-        print("Paciente eliminado con éxito");
-        return;
+        return true;
       }
     }
-
-    print("Paciente no encontrado");
+    return false;
   }
 
+  void editarActividad(
+      Actividad a, {
+        String? id,
+        String? nombre,
+        String? descripcion,
+        String? rutaIMG,
+      }) {
 
-
-
-
+    if (id != null) a.id = id;
+    if (nombre != null) a.nombre = nombre;
+    if (descripcion != null) a.descripcion = descripcion;
+    if (rutaIMG != null) a.rutaIMG = rutaIMG;
+  }
 }
