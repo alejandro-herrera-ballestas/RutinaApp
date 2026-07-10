@@ -1,4 +1,3 @@
-
 class Paso  {
   int id;
   int orden;
@@ -9,7 +8,18 @@ class Paso  {
     required this.id,
     required this.orden,
     required this.descripcion,
-    required this.completado,
+    this.completado = false,
   });
 
+  void completar()  {
+    completado = true;
+  }
+
+  void reiniciar()  {
+    completado = false;
+  }
+
+  bool estaCompleto() {
+    return completado;
+  }
 }
