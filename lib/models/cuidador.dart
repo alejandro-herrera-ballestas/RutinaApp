@@ -32,7 +32,6 @@ class Cuidador extends Usuario {
     return true; // no se encontraron 2 iguales
   }
 
-  // eliminar un paciente de la lista
   bool eliminarPaciente(Paciente paciente) {
     for (int i = 0; i < pacientes.length; i++) {
       if (pacientes[i].id == paciente.id) {
@@ -43,7 +42,6 @@ class Cuidador extends Usuario {
     return false;
   }
 
-  // editar una actividad
   void editarActividad(Actividad a, {
     String? id,
     String? nombre,
