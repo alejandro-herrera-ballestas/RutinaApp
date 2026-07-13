@@ -86,7 +86,7 @@ Actualmente el proyecto se encuentra en desarrollo.
 - [x] Crear el proyecto Flutter
 - [x] Configurar Git y GitHub
 - [x] Diseñar el modelo UML
-- [...] Implementar las clases del modelo
+- [x] Implementar las clases del modelo
 - [ ] Crear la pantalla principal
 - [ ] Crear la pantalla de calendario
 - [ ] Crear el sistema de progreso
