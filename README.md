@@ -44,11 +44,12 @@ lib/
 │   ├── progreso.dart
 │   └── configuracion.dart
 │
+├──services/
+│   ├── auth_service.dart
+│   ├── database_service.dart
+│   ├── notification_service.dart
+│
 ├── screens/
-│
-├── widgets/
-│
-├── services/
 │
 ├── utils/
 │
