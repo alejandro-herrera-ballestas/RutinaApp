@@ -88,7 +88,7 @@ Actualmente el proyecto se encuentra en desarrollo.
 - [x] Configurar Git y GitHub
 - [x] Diseñar el modelo UML
 - [x] Implementar las clases del modelo
-- [ ] Crear la pantalla principal
+- [x] Crear la pantalla principal
 - [ ] Crear la pantalla de calendario
 - [ ] Crear el sistema de progreso
 - [ ] Implementar base de datos local
