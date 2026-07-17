@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget{
   const LoginScreen({super.key});
@@ -15,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen>  {
   @override
   Widget build(BuildContext context)  {
     return  Scaffold(
-      backgroundColor: const Color(0xFFDCD3D1), // color de fondo
+      backgroundColor: const Color(0xFFF8F5F2), // color de fondo
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFBF5),   // barra
         elevation: 0,
@@ -44,7 +45,6 @@ class _LoginScreenState extends State<LoginScreen>  {
               style: TextStyle(
                 fontSize: 40,
                 color: Colors.black87,
-                fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.normal,
               ),
             ),
@@ -99,24 +99,38 @@ class _LoginScreenState extends State<LoginScreen>  {
               height: 30,
             ),
             
-            SizedBox(
+            SizedBox(   // boton iniciar sesion
               width: 300,
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
                   final usuario = usuarioController.text;
                   final contrasena = contrasenaController.text;
-                  if (usuario.isEmpty || contrasena.isEmpty) {
-                    // mostrar mensaje
+
+                  if (usuario.isEmpty || contrasena.isEmpty) {  // verificar que no esten los campos vacios
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Debe completar todos los campos."),
+                          backgroundColor: Colors.red,
+                        ),
+                    );
                     return;
                   }
+
+                  ScaffoldMessenger.of(context).showSnackBar(   // mensaje de exito
+                    const SnackBar(
+                      content: Text("Inicio de sesion con exito."),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                   print("Usuario: $usuario, Contraseña: $contrasena");
                 },
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF6D8B74),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(15),
                   ),
                 ),
                 child: const Text(
@@ -131,8 +145,7 @@ class _LoginScreenState extends State<LoginScreen>  {
 // BOTÓN REGISTRARSE
             TextButton(
               onPressed: () {
-                // pantalla de registro
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const registerScreen(),),);
               },
               child: const Text(
                 "¿No tienes cuenta? Regístrate",
