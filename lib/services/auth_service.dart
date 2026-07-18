@@ -6,10 +6,10 @@ class AuthService {
 
   void cerrarSesion() {}
 
-  bool registrarUsuario() {
+  bool registrarUsuario(String nombre, String usuario,String contrasena) {
     return true;
   }
 
   void recuperarContrasena(String usuario) {}
-  
+
 }
