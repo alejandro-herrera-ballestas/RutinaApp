@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:rutina_app/models/paso.dart';
 
 class Actividad {
@@ -9,6 +10,7 @@ class Actividad {
   List<Paso> pasos;
   bool completada;
   DateTime? fechaCompletada;
+  TimeOfDay hora;
 
   Actividad({
     required this.id,
@@ -18,6 +20,7 @@ class Actividad {
     required this.pasos,
     this.completada = false,
     this.fechaCompletada,
+    required this.hora,
   });
 
   void completar() {
