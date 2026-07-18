@@ -1,6 +1,6 @@
 class AuthService {
 
-  bool iniciarSesion(String correo, String contrasena) {
+  bool iniciarSesion(String usuario, String contrasena) {
     return true;
   }
 
@@ -10,6 +10,6 @@ class AuthService {
     return true;
   }
 
-  void recuperarContrasena(String correo) {}
-
+  void recuperarContrasena(String usuario) {}
+  
 }
