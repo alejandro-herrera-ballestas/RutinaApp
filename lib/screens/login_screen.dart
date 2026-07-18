@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rutina_app/utils/global.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget{
@@ -109,10 +110,25 @@ class _LoginScreenState extends State<LoginScreen>  {
 
                   if (usuario.isEmpty || contrasena.isEmpty) {  // verificar que no esten los campos vacios
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Debe completar todos los campos."),
-                          backgroundColor: Colors.red,
-                        ),
+                      const SnackBar(
+                        content: Text("Debe completar todos los campos."),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  bool loginExitoso = authService.iniciarSesion(
+                    usuario,
+                    contrasena,
+                  );
+
+                  if (!loginExitoso) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Usuario o contraseña incorrectos"),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                     return;
                   }
@@ -123,7 +139,6 @@ class _LoginScreenState extends State<LoginScreen>  {
                       backgroundColor: Colors.green,
                     ),
                   );
-                  print("Usuario: $usuario, Contraseña: $contrasena");
                 },
 
                 style: ElevatedButton.styleFrom(

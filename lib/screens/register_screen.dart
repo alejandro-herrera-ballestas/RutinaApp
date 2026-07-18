@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'package:rutina_app/utils/global.dart';
 
 class registerScreen extends StatefulWidget{
   const registerScreen({super.key});
@@ -142,6 +142,22 @@ class _registerScreenState extends State<registerScreen>  {
                   final usuario = usuarioController.text;
                   final contrasena = contrasenaController.text;
                   final confirmarContra = confirmContrasenaController.text;
+
+                  bool registrado = authService.registrarUsuario(
+                    nombreCompleto,
+                    usuario,
+                    contrasena,
+                  );
+
+                  if (!registrado) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("El usuario ya existe"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
 
                   // confirmar que no haya campos vacios
                   if (usuario.isEmpty || contrasena.isEmpty || nombreCompleto.isEmpty || confirmarContra.isEmpty) {
