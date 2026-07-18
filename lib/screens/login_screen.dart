@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen>  {
               size: 90,
             ),
             const Text(
-              "Login",
+              "Bienvenido",
               style: TextStyle(
                 fontSize: 40,
                 color: Colors.black87,
