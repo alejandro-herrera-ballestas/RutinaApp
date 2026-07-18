@@ -143,22 +143,6 @@ class _registerScreenState extends State<registerScreen>  {
                   final contrasena = contrasenaController.text;
                   final confirmarContra = confirmContrasenaController.text;
 
-                  bool registrado = authService.registrarUsuario(
-                    nombreCompleto,
-                    usuario,
-                    contrasena,
-                  );
-
-                  if (!registrado) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("El usuario ya existe"),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
                   // confirmar que no haya campos vacios
                   if (usuario.isEmpty || contrasena.isEmpty || nombreCompleto.isEmpty || confirmarContra.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -181,13 +165,28 @@ class _registerScreenState extends State<registerScreen>  {
                     return;
                   }
 
+                  bool registrado = authService.registrarUsuario(
+                    nombreCompleto,
+                    usuario,
+                    contrasena,
+                  );
+
+                  if (!registrado) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("El usuario ya existe"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  
                   ScaffoldMessenger.of(context).showSnackBar(   // mensaje de exito
                     const SnackBar(
                       content: Text("Usuario registrado correctamente."),
                       backgroundColor: Colors.green,
                     ),
                   );
-                  print("Usuario: $usuario, Contraseña: $contrasena");
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF6D8B74),
