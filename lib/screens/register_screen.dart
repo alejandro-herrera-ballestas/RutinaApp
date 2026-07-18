@@ -63,6 +63,10 @@ class _registerScreenState extends State<registerScreen>  {
               ),
             ),
 
+            SizedBox(
+              height: 20,
+            ),
+
             SizedBox(     // registrar usuario
               width: 300,
               child: TextFormField(
@@ -73,6 +77,10 @@ class _registerScreenState extends State<registerScreen>  {
                   prefixIcon: Icon(Icons.person),
                 ),
               ),
+            ),
+
+            SizedBox(
+              height: 20,
             ),
 
             SizedBox(   // registrar contraseña
@@ -180,7 +188,7 @@ class _registerScreenState extends State<registerScreen>  {
                     );
                     return;
                   }
-                  
+
                   ScaffoldMessenger.of(context).showSnackBar(   // mensaje de exito
                     const SnackBar(
                       content: Text("Usuario registrado correctamente."),
