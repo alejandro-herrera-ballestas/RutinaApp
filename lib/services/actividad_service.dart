@@ -115,7 +115,7 @@ class ActividadService {
   void limpiarActividades() {
     _actividades.clear();
   }
-
+  // contador de actividades completadas
   int actividadesCompletadas() {
 
     int contador = 0;
