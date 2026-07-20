@@ -58,11 +58,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      body: Padding(    // cuerpo de la aplicacion
+      body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             const Text(
               "Hoy",
               style: TextStyle(
@@ -70,11 +71,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             const SizedBox(height: 5),
+
             Text(
               fechaHoy,
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.black54,
+              ),
             ),
+
+            const SizedBox(height: 20),
+
+            Expanded(
+              child: ListView.builder(
+                itemCount: 0,
+                itemBuilder: (context, index) {
+                  return const SizedBox();
+                },
+              ),
+            ),
+
           ],
         ),
       ),
