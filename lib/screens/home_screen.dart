@@ -5,23 +5,22 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();  // crear el state de home
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());
+    final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());    // para mostrar la fecha de hoy
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5F2),
-
+      backgroundColor: const Color(0xFFF8F5F2), // color de fondo
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFBF5),
+        backgroundColor: const Color(0xFFFFFBF5),   // color del appBar
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.menu),
+          icon: const Icon(Icons.menu), // icon de menu
           onPressed: () {},
         ),
         title: const Text(
@@ -34,13 +33,32 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none),
+            icon: const Icon(Icons.notifications_none),   // icono notificacion
             onPressed: () {},
           ),
         ],
       ),
 
-      body: Padding(
+      // iconos de navegacion  en la parte inferior
+      bottomNavigationBar: BottomNavigationBar(
+          currentIndex: 0,
+        items: const  [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: "Inicio",
+          ),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month),
+              label: "Calendario"
+          ),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: "Perfil",
+          ),
+        ],
+      ),
+
+      body: Padding(    // cuerpo de la aplicacion
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
