@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      body: Padding(
+      body: Padding(    // cuerpo
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
