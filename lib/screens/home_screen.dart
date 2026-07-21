@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rutina_app/services/actividad_service.dart';
+import 'package:rutina_app/widgets/actividadCard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +14,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());    // para mostrar la fecha de hoy
+    final ActividadService actividadService = ActividadService();
+
+    final actividades = actividadService.obtenerActividades();    // obtener la lista de actividades
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2), // color de fondo
@@ -86,13 +91,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Expanded(
               child: ListView.builder(
-                itemCount: 0,
+                itemCount: actividades.length,
                 itemBuilder: (context, index) {
-                  return const SizedBox();
+                  return ActividadCard(
+                      actividad: actividades[index]
+                  );
                 },
               ),
             ),
-
           ],
         ),
       ),
