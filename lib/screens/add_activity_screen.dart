@@ -26,12 +26,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       initialTime: _horaSeleccionada ?? TimeOfDay.now(),
     );
 
-    // Si el usuario cierra el picker sin elegir nada, horaElegida llega null
     if (horaElegida == null) return;
 
     setState(() {
       _horaSeleccionada = horaElegida;
-      // Formateamos manualmente a HH:mm con ceros a la izquierda (ej: 08:05)
       final horas = horaElegida.hour.toString().padLeft(2, '0');
       final minutos = horaElegida.minute.toString().padLeft(2, '0');
       horaActividadController.text = '$horas:$minutos';
