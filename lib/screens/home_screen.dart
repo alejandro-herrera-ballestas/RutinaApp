@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:rutina_app/services/actividad_service.dart';
 import 'package:rutina_app/widgets/actividadCard.dart';
 
+import 'add_activity_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -101,6 +103,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AddActivityScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
