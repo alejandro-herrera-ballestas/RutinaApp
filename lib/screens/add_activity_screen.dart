@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rutina_app/screens/home_screen.dart';
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
@@ -17,8 +18,12 @@ class _AddActivityScreen extends State<AddActivityScreen>  {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.menu), // icon de menu
-          onPressed: () {},
+          icon: const Icon(Icons.arrow_back), // icon de menu
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()
+              ),
+            );
+          },
         ),
         title: const Text(
           "RutinaApp",
