@@ -16,7 +16,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());    // para mostrar la fecha de hoy
-    final ActividadService actividadService = ActividadService();
 
     final actividades = actividadService.obtenerActividades();    // obtener la lista de actividades
 
