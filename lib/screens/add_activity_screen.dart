@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:rutina_app/utils/global.dart';
+import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/services/actividad_service.dart';
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
@@ -91,28 +93,62 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
   // ============================ Guardar actividad ============================
   void _guardarActividad() {
-    // 1. Leer los valores actuales de los controladores
+
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
-    final hora = horaActividadController.text.trim();
 
-    if (nombre.isEmpty || hora.isEmpty) {
+    if (nombre.isEmpty || _horaSeleccionada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Completa al menos el nombre y la hora de la actividad'),
+          content: Text("Debe ingresar el nombre y la hora."),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
-// 3. Aquí se llamará al servicio para persistir la actividad, por ejemplo:
-    // ActividadService.agregarActividad(
-    //   nombre: nombre,
-    //   descripcion: descripcion,
-    //   hora: hora,
-    // );
 
-    Navigator.pop(context);
+    final actividad = Actividad(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      nombre: nombre,
+      descripcion: descripcion,
+      rutaIMG: _imagenSeleccionada?.path ?? "",
+      pasos: [],
+      hora: _horaSeleccionada!,
+    );
+
+    if (_imagenSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Debe seleccionar una imagen."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final bool agregado = actividadService.agregarActividad(actividad);
+
+    if (!agregado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No se pudo guardar la actividad."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Actividad creada correctamente."),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pop(context, true);
   }
+
+
 
   @override
   Widget build(BuildContext context) {
