@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:rutina_app/services/actividad_service.dart';
 import 'package:rutina_app/widgets/actividadCard.dart';
+import 'package:rutina_app/utils/global.dart';
 
 import 'add_activity_screen.dart';
 
