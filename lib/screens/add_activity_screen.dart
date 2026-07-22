@@ -147,7 +147,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
     Navigator.pop(context, true);
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
