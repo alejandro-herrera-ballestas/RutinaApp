@@ -6,12 +6,12 @@ RutinaApp es una aplicación móvil desarrollada con **Flutter** cuyo objetivo e
 
 ## ✨ Características
 
-- 📆 Organización de rutinas diarias.
-- ✅ Seguimiento de actividades completadas.
-- 📝 Actividades con instrucciones paso a paso.
-- 🔔 Recordatorios y notificaciones.
-- 👨‍👦 Administración de pacientes por parte de un cuidador.
-- 📊 Seguimiento del progreso diario.
+- 🔐 Registro e inicio de sesión de usuarios.
+- 📆 Organización de rutinas diarias por horario.
+- ➕ Creación de actividades con nombre, descripción y hora.
+- 📷 Selección de imagen para cada actividad (cámara o galería).
+- ✅ Seguimiento de actividades completadas y su progreso.
+- 👨‍👦 Modelo de administración de pacientes por parte de un cuidador.
 - 🎨 Interfaz sencilla y amigable para personas con TEA.
 - 📱 Aplicación multiplataforma gracias a Flutter.
 
@@ -19,12 +19,18 @@ RutinaApp es una aplicación móvil desarrollada con **Flutter** cuyo objetivo e
 
 ## 🛠️ Tecnologías
 
-- Flutter
+- Flutter (channel stable)
 - Dart
 - Material Design 3
 - Android Studio
-- Git
-- GitHub
+- Git / GitHub
+
+### Paquetes utilizados
+
+- [`uuid`](https://pub.dev/packages/uuid) — generación de identificadores únicos.
+- [`intl`](https://pub.dev/packages/intl) — formateo de fechas en español (`es_ES`).
+- [`image_picker`](https://pub.dev/packages/image_picker) — selección de imágenes desde cámara o galería.
+- [`cupertino_icons`](https://pub.dev/packages/cupertino_icons) — íconos estilo iOS.
 
 ---
 
@@ -34,26 +40,37 @@ RutinaApp es una aplicación móvil desarrollada con **Flutter** cuyo objetivo e
 lib/
 │
 ├── models/
-│   ├── usuario.dart
-│   ├── cuidador.dart
-│   ├── paciente.dart
-│   ├── horario.dart
-│   ├── rutina.dart
-│   ├── actividad.dart
-│   ├── paso.dart
-│   ├── progreso.dart
-│   └── configuracion.dart
+│   ├── usuario.dart          # Clase abstracta base (Cuidador y Paciente extienden de aquí)
+│   ├── cuidador.dart          # Gestiona pacientes y asignación/edición de actividades
+│   ├── paciente.dart          # Tiene un Horario y su propio progreso
+│   ├── horario.dart           # Lista de BloqueHorario, evita solapamientos
+│   ├── BloqueHorario.dart      # Relaciona una franja de tiempo con una Actividad
+│   ├── actividad.dart          # Nombre, descripción, imagen, pasos y estado de completado
+│   └── paso.dart               # Paso individual dentro de una actividad
 │
-├──services/
-│   ├── auth_service.dart
-│   ├── database_service.dart
-│   ├── notification_service.dart
+├── services/
+│   ├── actividad_service.dart     # CRUD completo de actividades en memoria
+│   ├── auth_service.dart          # Registro / inicio de sesión en memoria
+│   ├── usuarioAuth.dart           # Modelo interno de credenciales
+│   ├── database_service.dart      # Interfaz preparada para persistencia (aún sin implementar)
+│   └── notification_service.dart  # Reservado para notificaciones (pendiente)
 │
 ├── screens/
+│   ├── login_screen.dart          # Inicio de sesión
+│   ├── register_screen.dart       # Registro de nuevo usuario
+│   ├── home_screen.dart           # Lista de actividades del día
+│   └── add_activity_screen.dart   # Formulario para crear una actividad
+│
+├── widgets/
+│   ├── actividadCard.dart          # Tarjeta de actividad usada en el Home
+│   ├── actividadProgress.dart      # (pendiente de implementar)
+│   ├── botonGrande.dart            # (pendiente de implementar)
+│   └── progreso.dart               # (pendiente de implementar)
 │
 ├── utils/
+│   └── global.dart      # Instancias globales de ActividadService y AuthService
 │
-└── main.dart
+└── main.dart            # Punto de entrada; inicializa formato de fecha es_ES y abre LoginScreen
 ```
 
 ---
@@ -64,36 +81,46 @@ El sistema está basado en Programación Orientada a Objetos.
 
 ### Usuarios
 
-- Usuario (abstracto)
-  - Cuidador
-  - Paciente
+- `Usuario` (abstracto): id, nombre, fecha de nacimiento, foto de perfil, cálculo de edad.
+  - `Cuidador`: administra una lista de `Paciente`, puede asignar y editar actividades.
+  - `Paciente`: tiene un `Horario` propio y calcula su porcentaje de progreso diario.
 
 ### Organización
 
+```
 Paciente
-→ Horario
-→ Rutinas
-→ Actividades
-→ Pasos
+ └── Horario
+      └── BloqueHorario (franja de tiempo)
+           └── Actividad
+                └── Paso (opcional, paso a paso)
+```
+
+`Horario` valida que los bloques no se solapen entre sí antes de agregarlos, y permite reordenar u obtener la actividad correspondiente al momento actual.
+
+### Autenticación y persistencia de actividades
+
+Por ahora, tanto `AuthService` como `ActividadService` guardan la información **en memoria** (listas internas), por lo que los datos se pierden al cerrar la app. `DatabaseService` ya tiene la interfaz definida (guardar/actualizar/eliminar/obtener para pacientes, actividades y horarios) pero sus métodos aún no están implementados — es el siguiente paso natural para dar persistencia real.
 
 ---
 
 ## 🚀 Estado del proyecto
 
-Actualmente el proyecto se encuentra en desarrollo.
+Actualmente el proyecto se encuentra en desarrollo activo.
 
 ### Roadmap
 
 - [x] Crear el proyecto Flutter
 - [x] Configurar Git y GitHub
 - [x] Diseñar el modelo UML
-- [x] Implementar las clases del modelo
-- [x] Crear la pantalla principal
+- [x] Implementar las clases del modelo (`Usuario`, `Cuidador`, `Paciente`, `Horario`, `BloqueHorario`, `Actividad`, `Paso`)
+- [x] Crear la pantalla principal (Home) con listado de actividades
+- [x] Crear pantallas de inicio de sesión y registro (autenticación en memoria)
+- [x] Crear formulario para agregar actividades, con selector de hora (`TimePicker`) e imagen (cámara/galería)
 - [ ] Crear la pantalla de calendario
-- [ ] Crear el sistema de progreso
-- [ ] Implementar base de datos local
-- [ ] Implementar autenticación
-- [ ] Agregar notificaciones
+- [ ] Crear el sistema visual de progreso (widgets `progreso`, `actividadProgress`, `botonGrande`)
+- [ ] Implementar persistencia real en `DatabaseService` (actualmente son métodos vacíos)
+- [ ] Conectar `AuthService` a un backend o base de datos local
+- [ ] Implementar `notification_service.dart` (recordatorios y notificaciones)
 - [ ] Publicar primera versión
 
 ---
