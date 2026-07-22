@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rutina_app/screens/home_screen.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'register_screen.dart';
 
@@ -131,6 +132,12 @@ class _LoginScreenState extends State<LoginScreen>  {
                       ),
                     );
                     return;
+                  }
+
+                  if (loginExitoso == true) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen(),
+                      ),
+                    );
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(   // mensaje de exito
