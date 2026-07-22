@@ -109,11 +109,11 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const AddActivityScreen(),
+              builder: (_) => AddActivityScreen(),
             ),
           );
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_task),
       ),
     );
   }
