@@ -104,13 +104,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
+        onPressed: () async {
+          final resultado = Navigator.push(
+              context, MaterialPageRoute(
               builder: (_) => const AddActivityScreen(),
             ),
           );
+          if (resultado == true)  {
+            setState(() {}
+            );
+          }
         },
         child: const Icon(Icons.add_task),
       ),
