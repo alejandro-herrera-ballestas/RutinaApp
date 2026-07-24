@@ -3,7 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:rutina_app/utils/global.dart';
 import 'package:rutina_app/models/actividad.dart';
-import 'package:rutina_app/services/actividad_service.dart';
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
