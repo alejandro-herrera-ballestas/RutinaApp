@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
 
@@ -14,11 +16,8 @@ class ActividadCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: Image.asset(
-          actividad.rutaIMG,
-          width: 50,
-          height: 50,
-          fit: BoxFit.cover,
+        leading: Image.file(
+            File(actividad.rutaIMG)
         ),
 
         title: Text(actividad.nombre),
