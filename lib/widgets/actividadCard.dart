@@ -32,7 +32,7 @@ class ActividadCard extends StatelessWidget {
               context, 
               MaterialPageRoute(builder: (context) => DetalleActividadScreen(
                   actividad: actividad,
-              ),
+                ),
               ),
           );
         },
