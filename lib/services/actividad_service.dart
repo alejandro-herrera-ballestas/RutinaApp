@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
 
 class ActividadService {
@@ -36,6 +37,7 @@ class ActividadService {
         String? nombre,
         String? descripcion,
         String? rutaIMG,
+        TimeOfDay? hora,
       }) {
     Actividad? actividad = buscarActividad(id);
     if (actividad == null) {
@@ -45,6 +47,7 @@ class ActividadService {
       nuevoNombre: nombre,
       nuevaDescripcion: descripcion,
       nuevaRutaIMG: rutaIMG,
+      nuevaHora : hora,
     );
     return true;
   }
