@@ -8,6 +8,12 @@ class DetalleActividadScreen extends StatefulWidget {
 }
 
 class _DetalleActividadScreen extends State<DetalleActividadScreen> {
+
+  final TextEditingController nuevoNombreActividadController = TextEditingController();
+  final TextEditingController nuevaDescripcionActividadController = TextEditingController();
+  final TextEditingController nuevaHoraActividadController = TextEditingController();
+
+
   @override
   Widget build(BuildContext context)  {
     return Scaffold(
@@ -31,6 +37,7 @@ class _DetalleActividadScreen extends State<DetalleActividadScreen> {
           IconButton(
             icon: const Icon(Icons.check),   // icono check
             onPressed: () {
+
             },
           ),
             ];
