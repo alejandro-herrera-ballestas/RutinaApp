@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 
 class ActividadCard extends StatelessWidget {
 
@@ -27,7 +28,13 @@ class ActividadCard extends StatelessWidget {
 
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
-          // Ir a la pantalla de detalle
+          Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => DetalleActividadScreen(
+                  actividad: actividad,
+              ),
+              ),
+          );
         },
       ),
     );
