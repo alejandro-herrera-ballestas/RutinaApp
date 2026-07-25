@@ -1,27 +1,192 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:rutina_app/models/actividad.dart';
+import 'dart:io';
+import 'package:rutina_app/utils/global.dart';
 
 class DetalleActividadScreen extends StatefulWidget {
-  const DetalleActividadScreen ({super.key});
+  final Actividad actividad;
+
+  const DetalleActividadScreen({
+    super.key,
+    required this.actividad,
+  });
 
   @override
-  State<DetalleActividadScreen> createState ()  => _DetalleActividadScreen();
+  State<DetalleActividadScreen> createState() => _DetalleActividadScreenState();
 }
 
-class _DetalleActividadScreen extends State<DetalleActividadScreen> {
+class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
-  final TextEditingController nuevoNombreActividadController = TextEditingController();
-  final TextEditingController nuevaDescripcionActividadController = TextEditingController();
-  final TextEditingController nuevaHoraActividadController = TextEditingController();
+  final TextEditingController nombreActividadController = TextEditingController();
+  final TextEditingController descripcionActividadController = TextEditingController();
+  final TextEditingController horaActividadController = TextEditingController();
 
+  final ImagePicker _picker = ImagePicker();
+  TimeOfDay? _horaSeleccionada;
+  File? _imagenSeleccionada;
 
   @override
-  Widget build(BuildContext context)  {
+  void initState() {
+    super.initState();
+    // Precargamos los datos actuales de la actividad para poder editarlos
+    nombreActividadController.text = widget.actividad.nombre;
+    descripcionActividadController.text = widget.actividad.descripcion;
+
+    _horaSeleccionada = widget.actividad.hora;
+    final horas = widget.actividad.hora.hour.toString().padLeft(2, '0');
+    final minutos = widget.actividad.hora.minute.toString().padLeft(2, '0');
+    horaActividadController.text = '$horas:$minutos';
+
+    if (widget.actividad.rutaIMG.isNotEmpty) {
+      _imagenSeleccionada = File(widget.actividad.rutaIMG);
+    }
+  }
+
+  // ============================ Selección de hora (TimePicker) ============================
+  Future<void> _seleccionarHora() async {
+    final TimeOfDay? horaElegida = await showTimePicker(
+      context: context,
+      initialTime: _horaSeleccionada ?? TimeOfDay.now(),
+    );
+
+    if (horaElegida == null) return;
+
+    setState(() {
+      _horaSeleccionada = horaElegida;
+      final horas = horaElegida.hour.toString().padLeft(2, '0');
+      final minutos = horaElegida.minute.toString().padLeft(2, '0');
+      horaActividadController.text = '$horas:$minutos';
+    });
+  }
+
+  // ============================ Selección/captura de imagen ============================
+  Future<void> _seleccionarImagen() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text("Tomar foto"),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? imagen = await _picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 80,
+                  );
+                  if (imagen == null) return;
+                  setState(() {
+                    _imagenSeleccionada = File(imagen.path);
+                  });
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text("Elegir de la galería"),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? imagen = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 80,
+                  );
+                  if (imagen == null) return;
+                  setState(() {
+                    _imagenSeleccionada = File(imagen.path);
+                  });
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================ Guardar cambios ============================
+  void _guardarCambios() {
+    final nombre = nombreActividadController.text.trim();
+    final descripcion = descripcionActividadController.text.trim();
+
+    if (nombre.isEmpty || _horaSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Debe ingresar el nombre y la hora."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final bool editado = actividadService.editarActividad(
+      widget.actividad.id,
+      nombre: nombre,
+      descripcion: descripcion,
+      rutaIMG: _imagenSeleccionada?.path,
+      hora: _horaSeleccionada,
+    );
+
+    if (!editado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No se pudo actualizar la actividad."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Actividad actualizada correctamente."),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pop(context, true);
+  }
+
+  // Widget auxiliar: muestra la imagen elegida, o el placeholder si no hay ninguna
+  Widget _buildImagenPreview() {
+    if (_imagenSeleccionada != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          _imagenSeleccionada!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            // Si el archivo ya no existe en el dispositivo, mostramos el placeholder
+            return _buildPlaceholder();
+          },
+        ),
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.camera_alt, size: 45, color: Colors.grey),
+        SizedBox(height: 10),
+        Text("Agregar imagen", style: TextStyle(fontSize: 16, color: Colors.grey)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2),
       appBar: AppBar(
-        title: Text(
-            "Editar Actividad",
-        style: TextStyle(
+        title: const Text(
+          "Editar Actividad",
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -33,17 +198,17 @@ class _DetalleActividadScreen extends State<DetalleActividadScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context);
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check),   // icono check
-            onPressed: () {
-
-            },
-          ),
-            ];
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: 'Guardar cambios',
+            onPressed: _guardarCambios,
+          ),
+        ],
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         items: const [
@@ -52,6 +217,97 @@ class _DetalleActividadScreen extends State<DetalleActividadScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
         ],
       ),
+
+      // ============================ Cuerpo del formulario ==================================
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Center(
+            child: SizedBox(
+              width: 300,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ------------------ Imagen de la actividad ------------------
+                  GestureDetector(
+                    onTap: _seleccionarImagen,
+                    child: Container(
+                      height: 170,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                      ),
+                      child: _buildImagenPreview(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ------------------ Nombre de la actividad ------------------
+                  TextFormField(
+                    controller: nombreActividadController,
+                    decoration: const InputDecoration(
+                      labelText: "Nombre de la actividad",
+                      hintText: "Ej: Cepillarse los dientes",
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ------------------ Descripción (opcional) ------------------
+                  TextFormField(
+                    controller: descripcionActividadController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: "Descripción (Opcional)",
+                      hintText: "Ej: Cepíllate los dientes después del desayuno",
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ------------------ Hora de la actividad (TimePicker) ------------------
+                  TextFormField(
+                    controller: horaActividadController,
+                    readOnly: true,
+                    onTap: _seleccionarHora,
+                    decoration: const InputDecoration(
+                      labelText: "Ingrese la hora de la actividad",
+                      hintText: "Ej: 8:00",
+                      suffixIcon: Icon(Icons.access_time_filled),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ------------------ Botón principal de guardar ------------------
+                  ElevatedButton.icon(
+                    onPressed: _guardarCambios,
+                    icon: const Icon(Icons.save),
+                    label: const Text("Guardar cambios"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.black87,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    nombreActividadController.dispose();
+    descripcionActividadController.dispose();
+    horaActividadController.dispose();
+    super.dispose();
   }
 }
