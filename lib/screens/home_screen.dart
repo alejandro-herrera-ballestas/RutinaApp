@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 import 'package:rutina_app/widgets/actividadCard.dart';
 import 'package:rutina_app/utils/global.dart';
 
@@ -95,7 +96,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: actividades.length,
                 itemBuilder: (context, index) {
                   return ActividadCard(
-                      actividad: actividades[index]
+                    actividad: actividades[index],
+
+                    onTap: () async {
+                      final actualizado = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetalleActividadScreen(
+                            actividad: actividades[index],
+                          ),
+                        ),
+                      );
+
+                      if (actualizado == true) {
+                        setState(() {});
+                      }
+                    },
                   );
                 },
               ),
