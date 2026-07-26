@@ -111,7 +111,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       nombre: nombre,
       descripcion: descripcion,
       rutaIMG: _imagenSeleccionada?.path ?? "",
-      pasos: [],
       hora: _horaSeleccionada!,
     );
 
