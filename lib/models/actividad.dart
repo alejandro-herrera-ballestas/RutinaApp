@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:rutina_app/models/paso.dart';
 
 class Actividad {
 
@@ -7,7 +6,6 @@ class Actividad {
   String nombre;
   String descripcion;
   String rutaIMG;
-  List<Paso> pasos;
   bool completada;
   DateTime? fechaCompletada;
   TimeOfDay hora;
@@ -17,7 +15,6 @@ class Actividad {
     required this.nombre,
     required this.descripcion,
     required this.rutaIMG,
-    required this.pasos,
     this.completada = false,
     this.fechaCompletada,
     required this.hora,
@@ -31,32 +28,8 @@ class Actividad {
   void reiniciar() {
     completada = false;
     fechaCompletada = null;
-    for (Paso paso in pasos) {
-      paso.reiniciar();
-    }
   }
-
-  void agregarPaso(Paso paso) {
-    pasos.add(paso);
-  }
-
-  bool eliminarPaso(Paso paso) {
-    return pasos.remove(paso);
-  }
-
-  double porcentajeCompletado() {
-    if (pasos.isEmpty) {
-      return completada ? 100 : 0;
-    }
-    int completos = 0;
-    for (Paso paso in pasos) {
-      if (paso.estaCompleto()) {
-        completos++;
-      }
-    }
-    return (completos / pasos.length) * 100;
-  }
-
+  
   void editar({
     String? nuevoNombre,
     String? nuevaDescripcion,
