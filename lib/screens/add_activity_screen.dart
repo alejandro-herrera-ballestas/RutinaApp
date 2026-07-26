@@ -20,6 +20,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final TextEditingController horaActividadController = TextEditingController();
 
   TimeOfDay? _horaSeleccionada;
+  Duration _duracionSeleccionada = const Duration(minutes: 15); // valor inicial por defecto
 
   // ============================ Selección de hora (TimePicker) ============================
   Future<void> _seleccionarHora() async {
@@ -112,6 +113,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       descripcion: descripcion,
       rutaIMG: _imagenSeleccionada?.path ?? "",
       hora: _horaSeleccionada!,
+      duracion: _duracionSeleccionada,
     );
 
     if (_imagenSeleccionada == null) {
@@ -273,6 +275,31 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       hintText: "Ej: 8:00",
                       suffixIcon: Icon(Icons.access_time_filled),
                     ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ------------------ Duración de la actividad ------------------
+                  DropdownButtonFormField<Duration>(
+                    initialValue: _duracionSeleccionada,
+                    decoration: const InputDecoration(
+                      labelText: "Duración de la actividad",
+                      prefixIcon: Icon(Icons.timelapse),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: Duration(minutes: 5), child: Text("5 minutos")),
+                      DropdownMenuItem(value: Duration(minutes: 10), child: Text("10 minutos")),
+                      DropdownMenuItem(value: Duration(minutes: 15), child: Text("15 minutos")),
+                      DropdownMenuItem(value: Duration(minutes: 30), child: Text("30 minutos")),
+                      DropdownMenuItem(value: Duration(minutes: 45), child: Text("45 minutos")),
+                      DropdownMenuItem(value: Duration(hours: 1), child: Text("1 hora")),
+                    ],
+                    onChanged: (nuevaDuracion) {
+                      if (nuevaDuracion == null) return;
+                      setState(() {
+                        _duracionSeleccionada = nuevaDuracion;
+                      });
+                    },
                   ),
 
                   const SizedBox(height: 40),
