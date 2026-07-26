@@ -29,7 +29,7 @@ class Actividad {
     completada = false;
     fechaCompletada = null;
   }
-  
+
   void editar({
     String? nuevoNombre,
     String? nuevaDescripcion,
