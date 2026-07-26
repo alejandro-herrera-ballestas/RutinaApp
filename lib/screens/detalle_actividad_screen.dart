@@ -294,6 +294,32 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   ),
 
                   const SizedBox(height: 20),
+
+                  //--------------- Boton completar actividad-----------------------
+                  ElevatedButton.icon(
+                    onPressed: widget.actividad.completada
+                        ? null
+                        : () {
+                      setState(() {
+                        widget.actividad.completar();
+                      });
+                    },
+                    icon: Icon(
+                      widget.actividad.completada
+                          ? Icons.check_circle
+                          : Icons.check_sharp,
+                    ),
+                    label: Text(
+                      widget.actividad.completada
+                          ? "Actividad completada"
+                          : "Completar Actividad",
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
                 ],
               ),
             ),
