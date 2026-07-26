@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 import 'package:rutina_app/widgets/actividadCard.dart';
 import 'package:rutina_app/utils/global.dart';
-
+import 'calendario_screen.dart';
 import 'add_activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -48,20 +48,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // iconos de navegacion  en la parte inferior
       bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CalendarioScreen()),
+            );
+          }
+        },
         items: const  [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Inicio",
-          ),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month),
-              label: "Calendario"
-          ),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: "Perfil",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Calendario"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
         ],
       ),
 
