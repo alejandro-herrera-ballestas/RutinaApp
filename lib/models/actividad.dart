@@ -19,7 +19,7 @@ class Actividad {
     this.completada = false,
     this.fechaCompletada,
     required this.hora,
-    required this.duracion,
+    this.duracion = const Duration(minutes: 15),
   });
 
   void completar() {
