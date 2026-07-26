@@ -71,7 +71,7 @@ class Horario {
       actual.horaFin = actual.horaInicio.add(duracion);
     }
   }
-
+  // Genera los bloques del horario combinando la hora y duración de cada actividad
   List<String> generarDesdeActividades(List<Actividad> actividades, DateTime fecha) {
     bloques.clear();
     List<String> conflictivas = [];
