@@ -101,15 +101,6 @@ class ActividadService {
     return true;
   }
 
-  // Obtener porcentaje de una actividad
-  double obtenerPorcentaje(String id) {
-    Actividad? actividad = buscarActividad(id);
-    if (actividad == null) {
-      return 0;
-    }
-    return actividad.porcentajeCompletado();
-  }
-
   int cantidadActividades() {
     return _actividades.length;
   }
