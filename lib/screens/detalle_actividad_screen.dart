@@ -300,9 +300,11 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                     onPressed: widget.actividad.completada
                         ? null
                         : () {
-                      setState(() {
-                        widget.actividad.completar();
-                      });
+                      final completada = actividadService.completarActividad(widget.actividad.id,
+                      );
+                      if (completada) {
+                        setState(() {});
+                      }
                     },
                     icon: Icon(
                       widget.actividad.completada
