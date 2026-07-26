@@ -37,6 +37,7 @@ class Actividad {
     String? nuevaDescripcion,
     String? nuevaRutaIMG,
     TimeOfDay? nuevaHora,
+    Duration? nuevaDuracion,
   }) {
     if (nuevoNombre != null && nuevoNombre.isNotEmpty) {
       nombre = nuevoNombre;
@@ -51,6 +52,9 @@ class Actividad {
     }
     if (nuevaHora != null)  {
       hora = nuevaHora;
+    }
+    if (nuevaDuracion != null) {
+      duracion = nuevaDuracion;
     }
   }
 }
