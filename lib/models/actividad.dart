@@ -9,6 +9,7 @@ class Actividad {
   bool completada;
   DateTime? fechaCompletada;
   TimeOfDay hora;
+  Duration duracion;
 
   Actividad({
     required this.id,
@@ -18,6 +19,7 @@ class Actividad {
     this.completada = false,
     this.fechaCompletada,
     required this.hora,
+    required this.duracion,
   });
 
   void completar() {
