@@ -38,6 +38,7 @@ class ActividadService {
         String? descripcion,
         String? rutaIMG,
         TimeOfDay? hora,
+        Duration? duracion,
       }) {
     Actividad? actividad = buscarActividad(id);
     if (actividad == null) {
@@ -47,7 +48,8 @@ class ActividadService {
       nuevoNombre: nombre,
       nuevaDescripcion: descripcion,
       nuevaRutaIMG: rutaIMG,
-      nuevaHora : hora,
+      nuevaHora: hora,
+      nuevaDuracion: duracion,
     );
     return true;
   }
