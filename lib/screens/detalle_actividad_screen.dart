@@ -39,7 +39,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     final minutos = widget.actividad.hora.minute.toString().padLeft(2, '0');
     horaActividadController.text = '$horas:$minutos';
 
-    _duracionSeleccionada = widget.actividad.duracion; 
+    _duracionSeleccionada = widget.actividad.duracion;
 
     if (widget.actividad.rutaIMG.isNotEmpty) {
       _imagenSeleccionada = File(widget.actividad.rutaIMG);

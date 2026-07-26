@@ -71,4 +71,32 @@ class Horario {
       actual.horaFin = actual.horaInicio.add(duracion);
     }
   }
+
+  List<String> generarDesdeActividades(List<Actividad> actividades, DateTime fecha) {
+    bloques.clear();
+    List<String> conflictivas = [];
+
+    for (Actividad actividad in actividades) {
+      final DateTime inicio = DateTime(
+        fecha.year,
+        fecha.month,
+        fecha.day,
+        actividad.hora.hour,
+        actividad.hora.minute,
+      );
+      final DateTime fin = inicio.add(actividad.duracion);
+
+      final BloqueHorario bloque = BloqueHorario(
+        horaInicio: inicio,
+        horaFin: fin,
+        actividad: actividad,
+      );
+
+      final bool agregado = agregarBloque(bloque);
+      if (!agregado) {
+        conflictivas.add(actividad.nombre);
+      }
+    }
+    return conflictivas;
+  }
 }
