@@ -60,6 +60,49 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     });
   }
 
+  // ============================ Eliminar actividad ============================
+  Future<void> _confirmarEliminar() async {
+    final bool? confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Eliminar actividad"),
+          content: Text(
+            "¿Seguro que deseas eliminar \"${widget.actividad.nombre}\"? Esta acción no se puede deshacer.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text(
+                "Eliminar",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar != true) return; // el usuario canceló o cerró el diálogo
+
+    final bool eliminado = actividadService.eliminarActividad(widget.actividad.id);
+
+    if (!eliminado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No se pudo eliminar la actividad."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    Navigator.pop(context, true);
+  }
+
   // ============================ Selección/captura de imagen ============================
   Future<void> _seleccionarImagen() async {
     showModalBottomSheet(
@@ -202,6 +245,11 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: 'Eliminar actividad',
+            onPressed: _confirmarEliminar,
+          ),
+          IconButton(
             icon: const Icon(Icons.check),
             tooltip: 'Guardar cambios',
             onPressed: _guardarCambios,
@@ -320,6 +368,21 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                //--------------- Botón eliminar actividad -----------------------
+                  OutlinedButton.icon(
+                    onPressed: _confirmarEliminar,
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    label: const Text(
+                      "Eliminar actividad",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Colors.red),
                     ),
                   ),
                 ],
