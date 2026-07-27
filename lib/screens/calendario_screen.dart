@@ -447,8 +447,9 @@ class _TimelineDia extends StatelessWidget {
                 Builder(builder: (context) {
                   final topOffset = bloque.horaInicio.difference(rango.inicio).inMinutes *
                       pixelesPorMinuto;
+                  final double minimoNecesario = conflictivos.contains(bloque) ? 92.0 : 68.0;
                   final alturaBloque =
-                  (bloque.calcularDuracion().inMinutes * pixelesPorMinuto).clamp(48.0, double.infinity);
+                  (bloque.calcularDuracion().inMinutes * pixelesPorMinuto).clamp(minimoNecesario, double.infinity);
                   final bool conflicto = conflictivos.contains(bloque);
                   final bool actual = esActividadActual(bloque);
 
