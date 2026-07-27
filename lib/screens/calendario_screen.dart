@@ -229,12 +229,14 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         const int horaFinal = 23;
 
         final double alturaTotal =
-            (horaFinal - horaInicial) * _altoPorHora;
+            ((horaFinal - horaInicial) * _altoPorHora) + 20;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.only(
-            top: 20,
-            bottom: 50,
+            top: 30,
+            bottom: 60,
+            left: 4,
+            right: 4,
           ),
           child: SizedBox(
             height: alturaTotal,
@@ -256,7 +258,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                 hora <= horaFinal;
                 hora++)
                   Positioned(
-                    top: (hora - horaInicial) * _altoPorHora - 7,
+                    top: (hora - horaInicial) * _altoPorHora,
                     left: 0,
                     width: 48,
                     child: Text(
