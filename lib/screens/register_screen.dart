@@ -52,17 +52,6 @@ class _registerScreenState extends State<registerScreen>  {
               height: 60,
             ),
 
-            SizedBox(   // registrar nombre
-              width: 300,
-              child: TextFormField(
-                controller: nombreController,
-                decoration: const InputDecoration(
-                  labelText: "Nombre completo",
-                  hintText: "Ingrese su nombre completo",
-                ),
-              ),
-            ),
-
             SizedBox(
               height: 20,
             ),
