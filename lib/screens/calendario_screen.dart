@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rutina_app/models/BloqueHorario.dart';
 import 'package:rutina_app/utils/global.dart';
+import 'dart:io';
 
 class CalendarioScreen extends StatefulWidget {
   const CalendarioScreen({super.key});
@@ -124,10 +125,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 10,
-      ),
       decoration: BoxDecoration(
         color: actividad.completada
             ? Colors.green.shade50
@@ -146,69 +143,96 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Indicador de actividad
-          Container(
-            width: 5,
-            height: 48,
-            decoration: BoxDecoration(
-              color: actividad.completada
-                  ? Colors.green
-                  : Colors.deepPurpleAccent,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Row(
+          children: [
 
-          const SizedBox(width: 12),
-
-          // Información
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  actividad.nombre,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: actividad.completada
-                        ? Colors.green.shade800
-                        : Colors.black87,
-                  ),
+            // IMAGEN
+            SizedBox(
+              width: 65,
+              height: double.infinity,
+              child: actividad.rutaIMG.isNotEmpty
+                  ? Image.file(
+                File(actividad.rutaIMG),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(
+                      Icons.image_not_supported_outlined,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              )
+                  : Container(
+                color: Colors.grey.shade200,
+                child: const Icon(
+                  Icons.image_outlined,
+                  color: Colors.grey,
                 ),
+              ),
+            ),
 
-                const SizedBox(height: 5),
-
-                Text(
-                  '$horaInicio - $horaFin · $minutos min',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
+            // INFORMACIÓN
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
                 ),
-              ],
-            ),
-          ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      actividad.nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: actividad.completada
+                            ? Colors.green.shade800
+                            : Colors.black87,
+                      ),
+                    ),
 
-          const SizedBox(width: 8),
+                    const SizedBox(height: 4),
 
-          // Estado
-          if (actividad.completada)
-            const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 22,
-            )
-          else
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.black45,
-              size: 22,
+                    Text(
+                      '$horaInicio - $horaFin · $minutos min',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-        ],
+
+
+            // ESTADO
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: actividad.completada
+                  ? const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 20,
+              )
+                  : const Icon(
+                Icons.chevron_right,
+                color: Colors.black45,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,24 +339,19 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     final double top =
         (minutosDesdeInicio / 60) * _altoPorHora;
 
-    // Altura mínima para que siempre quepan
-    // nombre + horario.
+    // Altura mínima suficiente para mostrar
+    // imagen + nombre + horario.
     final double altura = ((duracionMinutos / 60) * _altoPorHora)
-        .clamp(62.0, 150.0);
+        .clamp(70.0, 150.0);
 
     return Positioned(
       top: top,
       left: 70,
       right: 4,
       height: altura,
-      child: Padding(
-        padding: const EdgeInsets.only(
-          bottom: 6,
-        ),
-        child: _crearTarjetaActividad(
-          context,
-          bloque,
-        ),
+      child: _crearTarjetaActividad(
+        context,
+        bloque,
       ),
     );
   }
