@@ -507,32 +507,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         ],
       ),
 
-
-      // BOTTOM NAVIGATION
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-
-        onTap: (index) {
-          if (index == 1) return;
-          Navigator.pop(context);
-        },
-
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Inicio",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: "Calendario",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Perfil",
-          ),
-        ],
-      ),
-
       // BODY
       body: SafeArea(
         child: Column(
