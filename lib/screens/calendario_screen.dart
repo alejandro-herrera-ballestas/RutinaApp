@@ -1,8 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rutina_app/models/BloqueHorario.dart';
 import 'package:rutina_app/utils/global.dart';
-import 'dart:io';
+import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 
 class CalendarioScreen extends StatefulWidget {
   const CalendarioScreen({super.key});
@@ -27,6 +29,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       _regenerarHorario();
     });
   }
+  
   // GENERAR HORARIO
   void _regenerarHorario() {
     final actividades = actividadService.obtenerActividades();
@@ -98,12 +101,34 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   }
 
   // VOLVER A HOY
+
   void _irAHoy() {
     setState(() {
       _fechaSeleccionada = DateTime.now();
     });
 
     _regenerarHorario();
+  }
+
+  // ABRIR DETALLE DE ACTIVIDAD
+  Future<void> _abrirDetalleActividad(
+      BuildContext context,
+      BloqueHorario bloque,
+      ) async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetalleActividadScreen(
+          actividad: bloque.actividad,
+        ),
+      ),
+    );
+
+    // Si se editaron o eliminaron datos,
+    // actualizamos el calendario.
+    if (resultado == true && mounted) {
+      _regenerarHorario();
+    }
   }
 
   // CONSTRUIR TARJETA DE ACTIVIDAD
@@ -113,129 +138,156 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ) {
     final actividad = bloque.actividad;
 
-    final String horaInicio = DateFormat(
-      'HH:mm',
-    ).format(bloque.horaInicio);
+    final String horaInicio =
+    DateFormat('HH:mm').format(bloque.horaInicio);
 
-    final String horaFin = DateFormat(
-      'HH:mm',
-    ).format(bloque.horaFin);
+    final String horaFin =
+    DateFormat('HH:mm').format(bloque.horaFin);
 
-    final int minutos = bloque.calcularDuracion().inMinutes;
+    final int minutos =
+        bloque.calcularDuracion().inMinutes;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: actividad.completada
-            ? Colors.green.shade50
-            : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        _abrirDetalleActividad(context, bloque);
+      },
+
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
           color: actividad.completada
-              ? Colors.green.shade200
-              : Colors.grey.shade200,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+              ? Colors.green.shade50
+              : Colors.white,
+
+          borderRadius: BorderRadius.circular(14),
+
+          border: Border.all(
+            color: actividad.completada
+                ? Colors.green.shade200
+                : Colors.grey.shade200,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Row(
-          children: [
 
-            // IMAGEN
-            SizedBox(
-              width: 65,
-              height: double.infinity,
-              child: actividad.rutaIMG.isNotEmpty
-                  ? Image.file(
-                File(actividad.rutaIMG),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey.shade200,
-                    child: const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              )
-                  : Container(
-                color: Colors.grey.shade200,
-                child: const Icon(
-                  Icons.image_outlined,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-
-            // INFORMACIÓN
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      actividad.nombre,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: actividad.completada
-                            ? Colors.green.shade800
-                            : Colors.black87,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      '$horaInicio - $horaFin · $minutos min',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-
-            // ESTADO
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: actividad.completada
-                  ? const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 20,
-              )
-                  : const Icon(
-                Icons.chevron_right,
-                color: Colors.black45,
-                size: 20,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+
+          child: Row(
+            children: [
+              // IMAGEN
+              SizedBox(
+                width: 65,
+                height: double.infinity,
+
+                child: actividad.rutaIMG.isNotEmpty
+                    ? Image.file(
+                  File(actividad.rutaIMG),
+                  fit: BoxFit.cover,
+
+                  errorBuilder: (
+                      context,
+                      error,
+                      stackTrace,
+                      ) {
+                    return Container(
+                      color: Colors.grey.shade200,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.grey,
+                      ),
+                    );
+                  },
+                )
+
+                    : Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(
+                    Icons.image_outlined,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+
+              // INFORMACIÓN
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        actividad.nombre,
+
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+
+                          color: actividad.completada
+                              ? Colors.green.shade800
+                              : Colors.black87,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        '$horaInicio - $horaFin · $minutos min',
+
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ESTADO
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+
+                child: actividad.completada
+                    ? const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 20,
+                )
+
+                    : const Icon(
+                  Icons.chevron_right,
+                  color: Colors.black45,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
   // CONSTRUIR HORARIO
   Widget _crearHorario() {
     final List<BloqueHorario> bloques = [
@@ -259,63 +311,71 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         left: 4,
         right: 4,
       ),
+
       child: SizedBox(
         height: alturaTotal,
+
         child: Stack(
           clipBehavior: Clip.none,
-          children: [
 
-            // Línea vertical
+          children: [
+            // LÍNEA VERTICAL
             Positioned(
               left: 57,
               top: 0,
               bottom: 20,
+
               child: Container(
                 width: 1,
                 color: Colors.grey.shade300,
               ),
             ),
 
-            // Horas
+            // HORAS
             for (int hora = horaInicial;
             hora <= horaFinal;
             hora++)
+
               Positioned(
                 top: (hora - horaInicial) * _altoPorHora - 7,
                 left: 0,
                 width: 48,
+
                 child: Text(
                   '${hora.toString().padLeft(2, '0')}:00',
+
                   textAlign: TextAlign.right,
+
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade600,
                   ),
                 ),
               ),
-
-            // Líneas horizontales
+            // LÍNEAS HORIZONTALES
             for (int hora = horaInicial;
             hora <= horaFinal;
             hora++)
+
               Positioned(
                 top: (hora - horaInicial) * _altoPorHora,
                 left: 65,
                 right: 0,
+
                 child: Container(
                   height: 1,
                   color: Colors.grey.shade200,
                 ),
               ),
 
-            // Actividades
+            // ACTIVIDADES
             for (final bloque in bloques)
               _crearPosicionActividad(
                 bloque,
                 horaInicial,
               ),
 
-            // Línea de hora actual
+            // LÍNEA DE HORA ACTUAL
             if (_esHoy())
               _crearLineaHoraActual(horaInicial),
           ],
@@ -323,7 +383,9 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ),
     );
   }
+
   // POSICIÓN DE UNA ACTIVIDAD
+
   Widget _crearPosicionActividad(
       BloqueHorario bloque,
       int horaInicial,
@@ -339,9 +401,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     final double top =
         (minutosDesdeInicio / 60) * _altoPorHora;
 
-    // Altura mínima suficiente para mostrar
-    // imagen + nombre + horario.
-    final double altura = ((duracionMinutos / 60) * _altoPorHora)
+    final double altura =
+    ((duracionMinutos / 60) * _altoPorHora)
         .clamp(70.0, 150.0);
 
     return Positioned(
@@ -349,12 +410,15 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       left: 70,
       right: 4,
       height: altura,
+
       child: _crearTarjetaActividad(
         context,
         bloque,
       ),
     );
   }
+
+
   // LÍNEA DE HORA ACTUAL
   Widget _crearLineaHoraActual(int horaInicial) {
     final ahora = DateTime.now();
@@ -368,14 +432,13 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         minutosDesdeInicio > (23 - horaInicial) * 60) {
       return const SizedBox.shrink();
     }
-
     final double top =
         (minutosDesdeInicio / 60) * _altoPorHora;
-
     return Positioned(
       top: top,
       left: 53,
       right: 0,
+
       child: Row(
         children: [
           Container(
@@ -386,7 +449,9 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               shape: BoxShape.circle,
             ),
           ),
+
           const SizedBox(width: 3),
+
           Expanded(
             child: Container(
               height: 1.5,
@@ -407,6 +472,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2),
+
+
       // APP BAR
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFBF5),
@@ -415,6 +482,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
         title: const Text(
           "Calendario",
+
           style: TextStyle(
             fontSize: 23,
             fontWeight: FontWeight.bold,
@@ -423,7 +491,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         ),
 
         actions: [
-          // Botón para volver a hoy
+
+          // Volver a hoy
           if (!_esHoy())
             IconButton(
               tooltip: 'Ir a hoy',
@@ -431,7 +500,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               onPressed: _irAHoy,
             ),
 
-          // Selector de fecha
+          // Seleccionar fecha
           IconButton(
             tooltip: 'Seleccionar fecha',
             icon: const Icon(Icons.calendar_month),
@@ -440,14 +509,16 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         ],
       ),
 
+
       // BOTTOM NAVIGATION
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
+
         onTap: (index) {
           if (index == 1) return;
-
           Navigator.pop(context);
         },
+
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -463,6 +534,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
           ),
         ],
       ),
+
       // BODY
       body: SafeArea(
         child: Column(
@@ -480,7 +552,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
                       children: [
                         const Text(
                           "Actividades",
@@ -503,7 +576,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                       ],
                     ),
                   ),
-
                   Text(
                     cantidadActividades == 1
                         ? "1 actividad"
@@ -527,6 +599,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                   20,
                   10,
                 ),
+
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade50,
@@ -535,13 +608,16 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                     color: Colors.orange.shade200,
                   ),
                 ),
+
                 child: Row(
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
                       color: Colors.orange.shade800,
                     ),
+
                     const SizedBox(width: 8),
+
                     Expanded(
                       child: Text(
                         "Hay actividades con conflictos de horario.",
@@ -554,6 +630,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                   ],
                 ),
               ),
+
             // HORARIO
             Expanded(
               child: horarioDelDia.bloques.isEmpty
@@ -561,7 +638,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(30),
                   child: Text(
-                    "No hay actividades programadas para este día.",
+                    "No hay actividades programadas "
+                        "para este día.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black54,
