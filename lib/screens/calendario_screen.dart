@@ -218,85 +218,85 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ...horarioDelDia.bloques,
     ];
 
-    // Ordenamos por hora
     bloques.sort(
           (a, b) => a.horaInicio.compareTo(b.horaInicio),
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const int horaInicial = 6;
-        const int horaFinal = 23;
+    const int horaInicial = 6;
+    const int horaFinal = 23;
 
-        final double alturaTotal =
-            ((horaFinal - horaInicial) * _altoPorHora) + 20;
+    final double alturaTotal =
+        ((horaFinal - horaInicial) * _altoPorHora) + 40;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            top: 30,
-            bottom: 60,
-            left: 4,
-            right: 4,
-          ),
-          child: SizedBox(
-            height: alturaTotal,
-            child: Stack(
-              children: [
-                // LÍNEA VERTICAL
-                Positioned(
-                  left: 57,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 1,
-                    color: Colors.grey.shade300,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(
+        top: 30,
+        bottom: 60,
+        left: 4,
+        right: 4,
+      ),
+      child: SizedBox(
+        height: alturaTotal,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+
+            // Línea vertical
+            Positioned(
+              left: 57,
+              top: 0,
+              bottom: 20,
+              child: Container(
+                width: 1,
+                color: Colors.grey.shade300,
+              ),
+            ),
+
+            // Horas
+            for (int hora = horaInicial;
+            hora <= horaFinal;
+            hora++)
+              Positioned(
+                top: (hora - horaInicial) * _altoPorHora - 7,
+                left: 0,
+                width: 48,
+                child: Text(
+                  '${hora.toString().padLeft(2, '0')}:00',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
                   ),
                 ),
+              ),
 
-                // HORAS
-                for (int hora = horaInicial;
-                hora <= horaFinal;
-                hora++)
-                  Positioned(
-                    top: (hora - horaInicial) * _altoPorHora,
-                    left: 0,
-                    width: 48,
-                    child: Text(
-                      '${hora.toString().padLeft(2, '0')}:00',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                // LÍNEAS HORIZONTALES
-                for (int hora = horaInicial;
-                hora <= horaFinal;
-                hora++)
-                  Positioned(
-                    top: (hora - horaInicial) * _altoPorHora,
-                    left: 65,
-                    right: 0,
-                    child: Container(
-                      height: 1,
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
-                // ACTIVIDADES
-                for (final bloque in bloques)
-                  _crearPosicionActividad(
-                    bloque,
-                    horaInicial,
-                  ),
-                // HORA ACTUAL
-                if (_esHoy())
-                  _crearLineaHoraActual(horaInicial),
-              ],
-            ),
-          ),
-        );
-      },
+            // Líneas horizontales
+            for (int hora = horaInicial;
+            hora <= horaFinal;
+            hora++)
+              Positioned(
+                top: (hora - horaInicial) * _altoPorHora,
+                left: 65,
+                right: 0,
+                child: Container(
+                  height: 1,
+                  color: Colors.grey.shade200,
+                ),
+              ),
+
+            // Actividades
+            for (final bloque in bloques)
+              _crearPosicionActividad(
+                bloque,
+                horaInicial,
+              ),
+
+            // Línea de hora actual
+            if (_esHoy())
+              _crearLineaHoraActual(horaInicial),
+          ],
+        ),
+      ),
     );
   }
   // POSICIÓN DE UNA ACTIVIDAD
