@@ -46,24 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      // iconos de navegacion  en la parte inferior
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CalendarioScreen()),
-            );
-          }
-        },
-        items: const  [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Calendario"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-        ],
-      ),
-
       body: Padding(    // cuerpo
         padding: const EdgeInsets.all(20),
         child: Column(
