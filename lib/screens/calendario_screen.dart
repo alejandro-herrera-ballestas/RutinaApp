@@ -29,7 +29,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       _regenerarHorario();
     });
   }
-  
+
   // GENERAR HORARIO
   void _regenerarHorario() {
     final actividades = actividadService.obtenerActividades();
@@ -385,7 +385,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   }
 
   // POSICIÓN DE UNA ACTIVIDAD
-
   Widget _crearPosicionActividad(
       BloqueHorario bloque,
       int horaInicial,
@@ -417,7 +416,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ),
     );
   }
-
 
   // LÍNEA DE HORA ACTUAL
   Widget _crearLineaHoraActual(int horaInicial) {
