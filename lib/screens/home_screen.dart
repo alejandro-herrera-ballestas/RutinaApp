@@ -26,10 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFFFFFBF5),   // color del appBar
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.menu), // icon de menu
-          onPressed: () {},
-        ),
         title: const Text(
           "RutinaApp",
           style: TextStyle(
