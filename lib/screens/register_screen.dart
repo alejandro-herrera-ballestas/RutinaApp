@@ -214,7 +214,7 @@ class _registerScreenState extends State<registerScreen>  {
 
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(context,true);
               },
               child: const Text(
                 "¿Ya tienes cuenta? Inicia sesion aqui",
