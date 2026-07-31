@@ -46,6 +46,27 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  // tarjeta de estadisticas
+  Widget tarjetaEstadistica(
+      String titulo,
+      String valor,
+      IconData icono,
+      ) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icono),
+        title: Text(titulo),
+        trailing: Text(
+          valor,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   // Menú de opciones al tocar la foto
   void _mostrarOpciones() {
     showModalBottomSheet(
@@ -89,8 +110,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Mi Perfil')),
-      body: Center(
-        child: Row(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -135,32 +157,39 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 SizedBox(
                   height: 50,
                 ),
-                
+
+                // estadisticas
+                const Text("Estadisticas"),
+                tarjetaEstadistica("Actividades creadas", "$total", Icons.list_alt),
+                tarjetaEstadistica("Completadas", "$completadas", Icons.check_circle),
+                tarjetaEstadistica("Pendientes", "$pendientes", Icons.schedule),
+                tarjetaEstadistica("Progreso", "$porcentaje%", Icons.show_chart),
+
+                LinearProgressIndicator(
+                  value: total == 0 ? 0 : completadas / total,
+                ),
+
+                SizedBox(height: 20),
+
                 ElevatedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.settings),
                   label: const Text("Configuración"),
                 ),
-                
+
                 SizedBox(height: 20),
-                
+
                 ElevatedButton.icon(onPressed: () {
                   authService.cerrarSesion();
                   Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => LoginScreen(),
-                      ),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => LoginScreen(),
+                    ),
                   );
                 },
-                    label: Text("Cerrar Sesion"),
+                  label: Text("Cerrar Sesion"),
                   icon: Icon(Icons.logout),
-                ),
-
-                SizedBox(height: 20),
-
-                ElevatedButton.icon(onPressed: () {}, 
-                    label: Text("Estadisticas"),
                 ),
               ],
             ),
