@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:rutina_app/screens/login_screen.dart';
 import 'package:rutina_app/screens/main_navigator_screen.dart';
 import 'package:rutina_app/utils/global.dart';
 
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver],
-      home: const MainNavigatorScreen(),
+      home: const LoginScreen(),
     );
   }
 }
