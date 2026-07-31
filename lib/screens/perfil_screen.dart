@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:rutina_app/utils/global.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({Key? key}) : super(key: key);
@@ -10,8 +11,10 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
+
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  final usuario = authService.usuarioActual;
 
   // Función para abrir la cámara o la galería
   Future<void> _pickImage(ImageSource source) async {
@@ -86,28 +89,71 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Mi Perfil')),
       body: Center(
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+
             GestureDetector(
               onTap: _mostrarOpciones,
-              onLongPress: _verFotoEnGrande, // Opción rápida para ver en grande
+              onLongPress: _verFotoEnGrande,
               child: CircleAvatar(
                 radius: 70,
                 backgroundColor: Colors.grey[300],
                 backgroundImage: _imageFile != null
-                    ? FileImage(_imageFile!) as ImageProvider
-                    : const AssetImage('assets/Starter pfp.jpeg'),
+                    ? FileImage(_imageFile!)
+                    : const AssetImage('assets/Starter pfp.jpeg')
+                as ImageProvider,
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Toca la foto para cambiarla',
-              style: TextStyle(color: Colors.grey),
+
+            const SizedBox(width: 20),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                Text(
+                  usuario?.nombre ?? "",
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  "@${usuario?.usuario ?? ""}",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
+                ),
+                
+                SizedBox(
+                  height: 50,
+                ),
+                
+                ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.settings),
+                  label: const Text("Configuración"),
+                ),
+                
+                SizedBox(height: 20),
+                
+                ElevatedButton.icon(onPressed: () {
+                  authService.cerrarSesion();
+                },
+                    label: Text("Cerrar Sesion"),
+                  icon: Icon(Icons.logout),
+                ),
+              ],
             ),
           ],
         ),
-      ),
+      )
     );
   }
 }
