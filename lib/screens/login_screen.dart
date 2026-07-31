@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rutina_app/screens/home_screen.dart';
+import 'package:rutina_app/screens/main_navigator_screen.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'register_screen.dart';
 
@@ -135,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen>  {
                   }
 
                   if (loginExitoso == true) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen(),
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MainNavigatorScreen(),
                       ),
                     );
                   }
