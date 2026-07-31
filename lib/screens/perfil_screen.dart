@@ -108,6 +108,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final total = actividadService.cantidadActividades();
+    final completadas = actividadService.actividadesCompletadas();
+    final pendientes = total - completadas;
+
+    final porcentaje = total == 0
+        ? 0
+        : ((completadas / total) * 100).round();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Mi Perfil')),
       body: SingleChildScrollView(
