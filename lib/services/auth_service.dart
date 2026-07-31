@@ -3,6 +3,7 @@ import 'package:rutina_app/services/usuarioAuth.dart';
 class AuthService {
 
   final List<UsuarioAuth> _usuarios = [];
+  UsuarioAuth? usuarioActual;
 
   bool registrarUsuario(String nombre, String usuario, String contrasena) {
 
@@ -26,6 +27,7 @@ class AuthService {
 
     for (var u in _usuarios) {
       if (u.usuario == usuario && u.contrasena == contrasena) {
+        usuarioActual = u;
         return true;
       }
     }
@@ -33,6 +35,7 @@ class AuthService {
   }
 
   void cerrarSesion() {
+    usuarioActual = null;
   }
 
 }
