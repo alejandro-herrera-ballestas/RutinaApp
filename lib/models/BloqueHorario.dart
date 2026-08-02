@@ -6,6 +6,7 @@ class BloqueHorario {
   DateTime horaFin;
   Actividad actividad;
 
+
   BloqueHorario({
     required this.horaInicio,
     required this.horaFin,
