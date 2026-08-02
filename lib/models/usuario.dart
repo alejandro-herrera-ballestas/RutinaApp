@@ -2,7 +2,7 @@ abstract class Usuario {
   String id;
   String nombre;
   DateTime fechaNacimiento;
-  String? fotoPerfil;
+  String? fotoPerfil = "";
 
   Usuario({
     required this.nombre,
