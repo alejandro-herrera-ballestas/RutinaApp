@@ -1,4 +1,5 @@
 import 'package:rutina_app/models/usuario.dart';
+import 'package:rutina_app/utils/global.dart';
 
 class UsuarioService {
 
