@@ -60,6 +60,7 @@ class Cuidador extends Usuario {
     return paciente.horario.agregarBloque(bloque);
   }
 
+  
   String mostrarInfo()  {
     return '''
     ID: $id
