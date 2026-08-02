@@ -6,19 +6,19 @@ class PacienteService {
 
   final UsuarioService usuarioService = UsuarioService();
 
-  Future<void> crearPaciente(Paciente paciente) {
+  Future<void> crearPaciente(Paciente paciente) async{
     throw UnimplementedError();
   }
 
-  Future<Paciente> obtenerPaciente(String id) {
+  Future<Paciente> obtenerPaciente(String id) async{
     throw UnimplementedError();
   }
 
-  Future<Paciente> obtenerTodosPacientes()  {
+  Future<List<Paciente>> obtenerTodosPacientes()  async{
     throw UnimplementedError();
   }
 
-  Future<void> eliminarPaciente() {
+  Future<void> eliminarPaciente() async{
     throw UnimplementedError();
   }
 }
