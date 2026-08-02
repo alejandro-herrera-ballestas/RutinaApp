@@ -13,11 +13,11 @@ class CuidadorService {
     throw UnimplementedError();
   }
 
-  Future<Cuidador> obetenerTodosCuidadores()  async{
+  Future<List<Cuidador>> obetenerTodosCuidadores()  async{
     throw UnimplementedError();
   }
 
-  Future<void> eliminarCuidador() async{
+  Future<void> eliminarCuidador(String id) async{
     throw UnimplementedError();
   }
 }
