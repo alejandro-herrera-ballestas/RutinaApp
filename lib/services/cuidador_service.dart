@@ -5,19 +5,19 @@ class CuidadorService {
 
   final UsuarioService usuarioService = UsuarioService();
 
-  Future<void> crearCuidador(Cuidador cuidador) {
+  Future<void> crearCuidador(Cuidador cuidador) async{
     throw UnimplementedError();
   }
 
-  Future<Cuidador> obtenerCuidador(String id) {
+  Future<Cuidador> obtenerCuidador(String id) async{
     throw UnimplementedError();
   }
 
-  Future<Cuidador> obetenerTodosCuidadores()  {
+  Future<Cuidador> obetenerTodosCuidadores()  async{
     throw UnimplementedError();
   }
 
-  Future<void> eliminarCuidador() {
+  Future<void> eliminarCuidador() async{
     throw UnimplementedError();
   }
 }
