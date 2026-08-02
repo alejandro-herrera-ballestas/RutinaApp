@@ -18,7 +18,7 @@ class PacienteService {
     throw UnimplementedError();
   }
 
-  Future<void> eliminarPaciente() async{
+  Future<void> eliminarPaciente(String id) async{
     throw UnimplementedError();
   }
 }
