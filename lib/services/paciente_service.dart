@@ -13,4 +13,12 @@ class PacienteService {
   Future<Paciente> obtenerPaciente(String id) {
     throw UnimplementedError();
   }
+
+  Future<Paciente> obtenerTodosPacientes()  {
+    throw UnimplementedError();
+  }
+
+  Future<void> eliminarPaciente() {
+    throw UnimplementedError();
+  }
 }
