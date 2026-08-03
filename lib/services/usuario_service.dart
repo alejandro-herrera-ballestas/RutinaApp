@@ -17,12 +17,29 @@ class UsuarioService {
     }
   }
 
-  Future<Usuario?> obtenerUsuario(String id) async {
-    throw UnimplementedError();
+  Future<Map<String, dynamic>?> obtenerUsuario(String id) async {
+    try {
+      final response = await supabase
+          .from('usuarios')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      throw Exception('Error al obtener usuario: $e');
+    }
   }
 
   Future<void> actualizarUsuario(Usuario usuario) async {
-    throw UnimplementedError();
+    try {
+       await supabase
+          .from('usuarios')
+          .update(usuario.toMap())
+          .eq('id', usuario.id);
+    } catch(e)  {
+      throw Exception('Error al actualizar el usuario: $e');
+    }
   }
 
   Future<void> eliminarUsuario(String id) async {
