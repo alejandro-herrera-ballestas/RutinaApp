@@ -43,7 +43,14 @@ class UsuarioService {
   }
 
   Future<void> eliminarUsuario(String id) async {
-    throw UnimplementedError();
+    try {
+      await supabase
+          .from('usuarios')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      throw Exception('Error al eliminar el usuario: $e');
+    }
   }
 
 }
