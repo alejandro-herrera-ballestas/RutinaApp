@@ -50,7 +50,6 @@ abstract class Usuario {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'nombre': nombre,
       'fecha_nacimiento': fechaNacimiento.toIso8601String().split('T')[0],
       'foto_perfil': fotoPerfil,
