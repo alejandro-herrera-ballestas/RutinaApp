@@ -51,4 +51,16 @@ class Paciente extends Usuario  {
     Foto: $fotoPerfil
     ''';
   }
+
+  factory Paciente.fromMap(Map<String, dynamic> map) {
+    final usuario = map['usuarios'];
+
+    return Paciente(
+      id: usuario['id'],
+      nombre: usuario['nombre'],
+      fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento']),
+      fotoPerfil: usuario['foto_perfil'],
+      horario: Horario(bloques: []),
+    );
+  }
 }

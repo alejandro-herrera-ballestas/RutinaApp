@@ -27,12 +27,8 @@ class PacienteService {
       final response = await supabase
           .from('pacientes')
           .select('''
-      id,
-      usuarios(
-        nombre,
-        fecha_nacimiento,
-        foto_perfil
-      )
+      *,
+      usuarios(*)
     ''')
           .eq('id', id)
           .single();
