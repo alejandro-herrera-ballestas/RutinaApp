@@ -11,9 +11,10 @@ class CuidadorService {
       final String idUsuario = await usuarioService.crearUsuario(cuidador);
 
       await supabase
-          .from('cuidador')
+          .from('cuidadores')
           .insert({
         'usuario_id': idUsuario,
+        'telefono': cuidador.telefono,
       });
 
     } catch (e) {
@@ -35,11 +36,11 @@ class CuidadorService {
       return Cuidador.fromMap(response);
 
     } catch (e) {
-      throw Exception('Error al obtener paciente: $e');
+      throw Exception('Error al obtener cuidador: $e');
     }
   }
 
-  Future<List<Cuidador>> obetenerTodosCuidadores()  async{
+  Future<List<Cuidador>> obtenerTodosCuidadores()  async{
     try {
       final response = await supabase
           .from('cuidadores')
@@ -68,7 +69,7 @@ class CuidadorService {
       final String usuarioId = cuidadores['usuario_id'];
       await usuarioService.eliminarUsuario(usuarioId);
     } catch (e) {
-      throw Exception('Error al eliminar pacientes: $e');
+      throw Exception('Error al eliminar cuidador: $e');
     }
   }
 }
