@@ -1,126 +1,109 @@
-import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/utils/global.dart';
 
 class ActividadService {
-  final List<Actividad> _actividades = [];
 
-  // Agregar una nueva actividad
-  bool agregarActividad(Actividad actividad) {
-    // Verificar que no exista una actividad con el mismo id
-    for (Actividad a in _actividades) {
-      if (a.id == actividad.id) {
-        return false;
-      }
+  // === DATABASE======
+  
+  // Crear una actividad para un paciente
+  Future<void> crearActividad(
+      Actividad actividad,
+      String pacienteId,
+      ) async {
+    try {
+      await supabase
+          .from('actividades')
+          .insert({
+        'paciente_id': pacienteId,
+        ...actividad.toMap(),
+      });
+    } catch (e) {
+      throw Exception('Error al crear actividad: $e');
     }
-    _actividades.add(actividad);
-    return true;
   }
 
-  // Obtener todas las actividades
-  List<Actividad> obtenerActividades() {
-    return List.from(_actividades);
+  // Obtener una actividad por su ID
+  Future<Actividad> obtenerActividad(String id) async {
+    try {
+      final response = await supabase
+          .from('actividades')
+          .select()
+          .eq('id', id)
+          .single();
+
+      return Actividad.fromMap(response);
+    } catch (e) {
+      throw Exception('Error al obtener actividad: $e');
+    }
   }
 
-  // Buscar una actividad por su id
-  Actividad? buscarActividad(String id) {
-    for (Actividad a in _actividades) {
-      if (a.id == id) {
-        return a;
-      }
+  // Obtener todas las actividades de un paciente
+  Future<List<Actividad>> obtenerActividadesPaciente(
+      String pacienteId,
+      ) async {
+    try {
+      final response = await supabase
+          .from('actividades')
+          .select()
+          .eq('paciente_id', pacienteId);
+
+      return response
+          .map((actividad) => Actividad.fromMap(actividad))
+          .toList();
+    } catch (e) {
+      throw Exception(
+        'Error al obtener actividades del paciente: $e',
+      );
     }
-    return null;
   }
 
-  // Editar una actividad
-  bool editarActividad(
-      String id, {
-        String? nombre,
-        String? descripcion,
-        String? rutaIMG,
-        TimeOfDay? hora,
-        Duration? duracion,
-      }) {
-    Actividad? actividad = buscarActividad(id);
-    if (actividad == null) {
-      return false;
+  // Actualizar una actividad
+  Future<void> actualizarActividad(
+      Actividad actividad,
+      ) async {
+    try {
+      await supabase
+          .from('actividades')
+          .update(actividad.toMap())
+          .eq('id', actividad.id);
+    } catch (e) {
+      throw Exception(
+        'Error al actualizar actividad: $e',
+      );
     }
-    actividad.editar(
-      nuevoNombre: nombre,
-      nuevaDescripcion: descripcion,
-      nuevaRutaIMG: rutaIMG,
-      nuevaHora: hora,
-      nuevaDuracion: duracion,
-    );
-    return true;
   }
 
   // Eliminar una actividad
-  bool eliminarActividad(String id) {
-    Actividad? actividad = buscarActividad(id);
-    if (actividad == null) {
-      return false;
+  Future<void> eliminarActividad(String id) async {
+    try {
+      await supabase
+          .from('actividades')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      throw Exception(
+        'Error al eliminar actividad: $e',
+      );
     }
-    _actividades.remove(actividad);
-    return true;
   }
 
-  // Reordenar actividades (pensado para el onReorder de un ReorderableListView)
-  bool reordenarActividades(int oldIndex, int newIndex) {
-    if (oldIndex < 0 ||
-        oldIndex >= _actividades.length ||
-        newIndex < 0 ||
-        newIndex > _actividades.length) {
-      return false;
-    }
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    Actividad actividad = _actividades.removeAt(oldIndex);
-    _actividades.insert(newIndex, actividad);
-    return true;
-  }
+  // ====== Funcionamiento  ===========
 
-  // Marcar una actividad como completada
-  bool completarActividad(String id) {
-    Actividad? actividad = buscarActividad(id);
-    if (actividad == null) {
-      return false;
-    }
+  bool completarActividadLocal(Actividad actividad) {
     if (actividad.completada) {
       return false;
     }
+
     actividad.completar();
     return true;
   }
 
-  // Reiniciar una actividad
-  bool reiniciarActividad(String id) {
-    Actividad? actividad = buscarActividad(id);
-    if (actividad == null) {
+  bool reiniciarActividadLocal(Actividad actividad) {
+    if (!actividad.completada) {
       return false;
     }
+
     actividad.reiniciar();
     return true;
-  }
-
-  int cantidadActividades() {
-    return _actividades.length;
-  }
-
-  // Eliminar todas las actividades
-  void limpiarActividades() {
-    _actividades.clear();
-  }
-  // contador de actividades completadas
-  int actividadesCompletadas() {
-
-    int contador = 0;
-
-    for (Actividad actividad in _actividades) {
-      if (actividad.completada) {
-        contador++;
-      }
-    }
-    return contador;
   }
 }
