@@ -39,7 +39,7 @@ class CuidadorPaciente {
     }
   }
 
-  Future<void> eliminarPaciente(String cuidadorId, String pacienteId,) async {
+  Future<void> eliminarPaciente(String cuidadorId, String pacienteId,) async {  // solo elimina la relacion entre paciente y cuidador
     try {
       await supabase
           .from('cuidador_paciente')
