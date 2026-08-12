@@ -5,13 +5,10 @@ import 'package:rutina_app/models/usuario.dart';
 
 class Cuidador extends Usuario {
 
-  String correo;
   String telefono;
   List<Paciente> pacientes;
 
   Cuidador({
-
-    required this.correo,
     required this.telefono,
     required this.pacientes,
 
@@ -66,8 +63,20 @@ class Cuidador extends Usuario {
     Nombre: $nombre
     Edad: ${obtenerEdad()}
     Foto: $fotoPerfil
-    Correo: $correo
     Telefono: $telefono
     ''';
+  }
+
+  factory Cuidador.fromMap(Map<String, dynamic> map) {
+    final usuario = map['usuarios'];
+
+    return Cuidador(
+      id: usuario['id'],
+      nombre: usuario['nombre'],
+      fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento'],),
+      telefono: usuario['telefono'],
+      fotoPerfil: map['foto_perfil'],
+      pacientes: [],
+    );
   }
 }
