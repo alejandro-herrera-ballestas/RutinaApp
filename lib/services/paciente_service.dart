@@ -33,8 +33,10 @@ class PacienteService {
           .eq('id', id)
           .single();
 
+      return Paciente.fromMap(response);
+
     } catch (e) {
-      throw Exception('Error al obtener paciente: $e')
+      throw Exception('Error al obtener paciente: $e');
     }
   }
 
