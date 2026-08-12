@@ -40,11 +40,36 @@ class PacienteService {
     }
   }
 
-  Future<List<Paciente>> obtenerTodosPacientes()  async{
-    throw UnimplementedError();
+  Future<List<Paciente>> obtenerTodosPacientes() async {
+    try {
+      final response = await supabase
+          .from('pacientes')
+          .select('''
+          *,
+          usuarios(*)
+        ''');
+
+      return response
+          .map((paciente) => Paciente.fromMap(paciente))
+          .toList();
+
+    } catch (e) {
+      throw Exception('Error al obtener pacientes: $e');
+    }
   }
 
   Future<void> eliminarPaciente(String id) async{
-    throw UnimplementedError();
+    try {
+      final paciente = await supabase
+          .from('pacientes')
+          .select('usuario_id')
+          .eq('id', id)
+          .single();
+
+      final String usuarioId = paciente['usuario_id'];
+      await usuarioService.eliminarUsuario(usuarioId);
+    } catch (e) {
+      throw Exception('Error al eliminar pacientes: $e');
+    }
   }
 }
