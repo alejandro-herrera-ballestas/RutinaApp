@@ -4,7 +4,7 @@ import 'package:rutina_app/utils/global.dart';
 class ActividadService {
 
   // === DATABASE======
-  
+
   // Crear una actividad para un paciente
   Future<void> crearActividad(
       Actividad actividad,
