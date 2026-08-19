@@ -22,6 +22,27 @@ class CuidadorService {
     }
   }
 
+  // Busca el cuidador a partir del id del usuario (= uid de Supabase Auth).
+  // Se usa justo después de iniciar sesión, para saber si la persona
+  // autenticada es un cuidador.
+  Future<Cuidador?> obtenerCuidadorPorUsuarioId(String usuarioId) async {
+    try {
+      final response = await supabase
+          .from('cuidadores')
+          .select('''
+      *,
+      usuarios(*)
+    ''')
+          .eq('usuario_id', usuarioId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return Cuidador.fromMap(response);
+    } catch (e) {
+      throw Exception('Error al obtener cuidador por usuario: $e');
+    }
+  }
+
   Future<Cuidador> obtenerCuidador(String id) async{
     try {
       final response = await supabase
