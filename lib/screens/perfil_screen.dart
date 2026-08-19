@@ -16,6 +16,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   final usuario = authService.usuarioActual;
+  final String correo = supabase.auth.currentUser?.email ?? "";
+  final String rol = authService.cuidadorActual != null ? "Cuidador" : "Paciente";
 
   // Función para abrir la cámara o la galería
   Future<void> _pickImage(ImageSource source) async {
@@ -118,93 +120,94 @@ class _PerfilScreenState extends State<PerfilScreen> {
         : ((completadas / total) * 100).round();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi Perfil')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        appBar: AppBar(title: const Text('Mi Perfil')),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
 
-            GestureDetector(
-              onTap: _mostrarOpciones,
-              onLongPress: _verFotoEnGrande,
-              child: CircleAvatar(
-                radius: 70,
-                backgroundColor: Colors.grey[300],
-                backgroundImage: _imageFile != null
-                    ? FileImage(_imageFile!)
-                    : const AssetImage('assets/Starter pfp.jpeg')
-                as ImageProvider,
+              GestureDetector(
+                onTap: _mostrarOpciones,
+                onLongPress: _verFotoEnGrande,
+                child: CircleAvatar(
+                  radius: 70,
+                  backgroundColor: Colors.grey[300],
+                  backgroundImage: _imageFile != null
+                      ? FileImage(_imageFile!)
+                      : const AssetImage('assets/Starter pfp.jpeg')
+                  as ImageProvider,
+                ),
               ),
-            ),
 
-            const SizedBox(width: 20),
+              const SizedBox(width: 20),
 
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                Text(
-                  usuario?.nombre ?? "",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  "@${usuario?.usuario ?? ""}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                
-                SizedBox(
-                  height: 50,
-                ),
-
-                // estadisticas
-                const Text("Estadisticas"),
-                tarjetaEstadistica("Actividades creadas", "$total", Icons.list_alt),
-                tarjetaEstadistica("Completadas", "$completadas", Icons.check_circle),
-                tarjetaEstadistica("Pendientes", "$pendientes", Icons.schedule),
-                tarjetaEstadistica("Progreso", "$porcentaje%", Icons.show_chart),
-
-                LinearProgressIndicator(
-                  value: total == 0 ? 0 : completadas / total,
-                ),
-
-                SizedBox(height: 20),
-
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.settings),
-                  label: const Text("Configuración"),
-                ),
-
-                SizedBox(height: 20),
-
-                ElevatedButton.icon(onPressed: () {
-                  authService.cerrarSesion();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LoginScreen(),
+                  Text(
+                    usuario?.nombre ?? "",
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-                  label: Text("Cerrar Sesion"),
-                  icon: Icon(Icons.logout),
-                ),
-              ],
-            ),
-          ],
-        ),
-      )
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    correo.isNotEmpty ? "$correo · $rol" : rol,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+
+                  SizedBox(
+                    height: 50,
+                  ),
+
+                  // estadisticas
+                  const Text("Estadisticas"),
+                  tarjetaEstadistica("Actividades creadas", "$total", Icons.list_alt),
+                  tarjetaEstadistica("Completadas", "$completadas", Icons.check_circle),
+                  tarjetaEstadistica("Pendientes", "$pendientes", Icons.schedule),
+                  tarjetaEstadistica("Progreso", "$porcentaje%", Icons.show_chart),
+
+                  LinearProgressIndicator(
+                    value: total == 0 ? 0 : completadas / total,
+                  ),
+
+                  SizedBox(height: 20),
+
+                  ElevatedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.settings),
+                    label: const Text("Configuración"),
+                  ),
+
+                  SizedBox(height: 20),
+
+                  ElevatedButton.icon(onPressed: () async {
+                    await authService.cerrarSesion();
+                    if (!context.mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LoginScreen(),
+                      ),
+                    );
+                  },
+                    label: Text("Cerrar Sesion"),
+                    icon: Icon(Icons.logout),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        )
     );
   }
 }
