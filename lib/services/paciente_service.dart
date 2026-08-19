@@ -1,4 +1,3 @@
-
 import 'package:rutina_app/models/paciente.dart';
 import 'package:rutina_app/services/usuario_service.dart';
 import 'package:rutina_app/utils/global.dart';
@@ -19,6 +18,27 @@ class PacienteService {
 
     } catch (e) {
       throw Exception("Error al crear paciente: $e");
+    }
+  }
+
+  // Busca el paciente a partir del id del usuario (= uid de Supabase Auth).
+  // Se usa justo después de iniciar sesión, para saber si la persona
+  // autenticada es un paciente.
+  Future<Paciente?> obtenerPacientePorUsuarioId(String usuarioId) async {
+    try {
+      final response = await supabase
+          .from('pacientes')
+          .select('''
+      *,
+      usuarios(*)
+    ''')
+          .eq('usuario_id', usuarioId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return Paciente.fromMap(response);
+    } catch (e) {
+      throw Exception('Error al obtener paciente por usuario: $e');
     }
   }
 
