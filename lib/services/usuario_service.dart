@@ -3,11 +3,17 @@ import 'package:rutina_app/utils/global.dart';
 
 class UsuarioService {
 
+  // El id que llega en 'usuario' debe ser el mismo uid que entrega
+  // Supabase Auth al registrarse (auth.uid()), así la fila en 'usuarios'
+  // queda vinculada 1 a 1 con el usuario autenticado.
   Future<String> crearUsuario(Usuario usuario) async {
     try {
+      final datos = usuario.toMap();
+      datos['id'] = usuario.id; // forzamos el id, no dejamos que Supabase lo genere
+
       final response = await supabase
           .from('usuarios')
-          .insert(usuario.toMap())
+          .insert(datos)
           .select()
           .single();
 
@@ -33,7 +39,7 @@ class UsuarioService {
 
   Future<void> actualizarUsuario(Usuario usuario) async {
     try {
-       await supabase
+      await supabase
           .from('usuarios')
           .update(usuario.toMap())
           .eq('id', usuario.id);
