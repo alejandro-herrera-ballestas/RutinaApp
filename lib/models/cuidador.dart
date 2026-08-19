@@ -44,7 +44,7 @@ class Cuidador extends Usuario {
     String? nombre,
     String? descripcion,
     String? rutaIMG,
-      }) {
+  }) {
 
     if (id != null) a.id = id;
     if (nombre != null) a.nombre = nombre;
@@ -74,8 +74,8 @@ class Cuidador extends Usuario {
       id: usuario['id'],
       nombre: usuario['nombre'],
       fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento'],),
-      telefono: usuario['telefono'],
-      fotoPerfil: map['foto_perfil'],
+      telefono: map['telefono'], // 'telefono' vive en la tabla cuidadores
+      fotoPerfil: usuario['foto_perfil'], // 'foto_perfil' vive en la tabla usuarios
       pacientes: [],
     );
   }
