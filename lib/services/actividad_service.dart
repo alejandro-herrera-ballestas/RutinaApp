@@ -1,9 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/utils/global.dart';
 
 class ActividadService {
+  final List<Actividad> _actividades = [];
 
-  // === DATABASE======
+  // ============================================================
+  // SUPABASE
+  // ============================================================
 
   // Crear una actividad para un paciente
   Future<void> crearActividad(
@@ -22,7 +26,7 @@ class ActividadService {
     }
   }
 
-  // Obtener una actividad por su ID
+  // Obtener una actividad por su ID desde Supabase
   Future<Actividad> obtenerActividad(String id) async {
     try {
       final response = await supabase
@@ -57,7 +61,7 @@ class ActividadService {
     }
   }
 
-  // Actualizar una actividad
+  // Actualizar una actividad en Supabase
   Future<void> actualizarActividad(
       Actividad actividad,
       ) async {
@@ -73,8 +77,8 @@ class ActividadService {
     }
   }
 
-  // Eliminar una actividad
-  Future<void> eliminarActividad(String id) async {
+  // Eliminar una actividad de Supabase
+  Future<void> eliminarActividadSupabase(String id) async {
     try {
       await supabase
           .from('actividades')
@@ -87,9 +91,107 @@ class ActividadService {
     }
   }
 
-  // ====== Funcionamiento  ===========
+  // ============================================================
+  // FUNCIONAMIENTO LOCAL ORIGINAL
+  // ============================================================
 
-  bool completarActividadLocal(Actividad actividad) {
+  // Agregar una nueva actividad
+  bool agregarActividad(Actividad actividad) {
+    // Verificar que no exista una actividad con el mismo ID
+    for (Actividad a in _actividades) {
+      if (a.id == actividad.id) {
+        return false;
+      }
+    }
+
+    _actividades.add(actividad);
+    return true;
+  }
+
+  // Obtener todas las actividades locales
+  List<Actividad> obtenerActividades() {
+    return List.from(_actividades);
+  }
+
+  // Buscar una actividad local por su ID
+  Actividad? buscarActividad(String id) {
+    for (Actividad a in _actividades) {
+      if (a.id == id) {
+        return a;
+      }
+    }
+
+    return null;
+  }
+
+  // Editar una actividad local
+  bool editarActividad(
+      String id, {
+        String? nombre,
+        String? descripcion,
+        String? rutaIMG,
+        TimeOfDay? hora,
+        Duration? duracion,
+      }) {
+    Actividad? actividad = buscarActividad(id);
+
+    if (actividad == null) {
+      return false;
+    }
+
+    actividad.editar(
+      nuevoNombre: nombre,
+      nuevaDescripcion: descripcion,
+      nuevaRutaIMG: rutaIMG,
+      nuevaHora: hora,
+      nuevaDuracion: duracion,
+    );
+
+    return true;
+  }
+
+  // Eliminar una actividad local
+  bool eliminarActividad(String id) {
+    Actividad? actividad = buscarActividad(id);
+
+    if (actividad == null) {
+      return false;
+    }
+
+    _actividades.remove(actividad);
+    return true;
+  }
+
+  // Reordenar actividades
+  bool reordenarActividades(
+      int oldIndex,
+      int newIndex,
+      ) {
+    if (oldIndex < 0 ||
+        oldIndex >= _actividades.length ||
+        newIndex < 0 ||
+        newIndex > _actividades.length) {
+      return false;
+    }
+
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+
+    Actividad actividad = _actividades.removeAt(oldIndex);
+    _actividades.insert(newIndex, actividad);
+
+    return true;
+  }
+
+  // Marcar una actividad como completada
+  bool completarActividad(String id) {
+    Actividad? actividad = buscarActividad(id);
+
+    if (actividad == null) {
+      return false;
+    }
+
     if (actividad.completada) {
       return false;
     }
@@ -98,12 +200,42 @@ class ActividadService {
     return true;
   }
 
-  bool reiniciarActividadLocal(Actividad actividad) {
+  // Reiniciar una actividad
+  bool reiniciarActividad(String id) {
+    Actividad? actividad = buscarActividad(id);
+
+    if (actividad == null) {
+      return false;
+    }
+
     if (!actividad.completada) {
       return false;
     }
 
     actividad.reiniciar();
     return true;
+  }
+
+  // Cantidad de actividades
+  int cantidadActividades() {
+    return _actividades.length;
+  }
+
+  // Eliminar todas las actividades locales
+  void limpiarActividades() {
+    _actividades.clear();
+  }
+
+  // Contador de actividades completadas
+  int actividadesCompletadas() {
+    int contador = 0;
+
+    for (Actividad actividad in _actividades) {
+      if (actividad.completada) {
+        contador++;
+      }
+    }
+
+    return contador;
   }
 }
