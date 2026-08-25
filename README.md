@@ -12,7 +12,6 @@ El proyecto está especialmente orientado a personas que pueden beneficiarse de 
 
 <p align="center">
   <img width="180" alt="RutinaApp" src="https://github.com/user-attachments/assets/3dbd59d5-8a7d-486e-8b6b-95154761f023" />
-  <img width="180" alt="RutinaApp" src="https://github.com/user-attachments/assets/4bc44d2d-1308-4caa-82a9-2cabcdd65afd" />
   <img width="180" alt="RutinaApp" src="https://github.com/user-attachments/assets/87ce9575-fba2-4f0b-85c9-59d6415b1df7" />
   <img width="180" alt="RutinaApp" src="https://github.com/user-attachments/assets/3ebcf435-7465-4b07-b976-042feab678d2" />
 </p>
