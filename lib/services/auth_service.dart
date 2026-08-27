@@ -49,25 +49,32 @@ class AuthService {
       if (rol == RolUsuario.cuidador) {
         final cuidador = Cuidador(
           id: authUser.id,
+          cuidadorId: '', // provisorio: la base genera el id real al insertar
           nombre: nombre,
+          email: email,
           fechaNacimiento: fechaNacimiento,
           fotoPerfil: '',
           telefono: telefono ?? '',
           pacientes: [],
         );
         await cuidadorService.crearCuidador(cuidador);
-        _cuidadorActual = cuidador;
+        // releemos desde Supabase para quedarnos con el cuidadorId real
+        // (el que generó la base de datos al insertar).
+        _cuidadorActual = await cuidadorService.obtenerCuidadorPorUsuarioId(authUser.id);
         _pacienteActual = null;
       } else {
         final paciente = Paciente(
           id: authUser.id,
+          pacienteId: '', // provisorio: la base genera el id real al insertar
           nombre: nombre,
+          email: email,
           fechaNacimiento: fechaNacimiento,
           fotoPerfil: '',
           horario: Horario(bloques: []),
         );
         await pacienteService.crearPaciente(paciente);
-        _pacienteActual = paciente;
+        // releemos desde Supabase para quedarnos con el pacienteId real
+        _pacienteActual = await pacienteService.obtenerPacientePorUsuarioId(authUser.id);
         _cuidadorActual = null;
       }
     } catch (e) {
