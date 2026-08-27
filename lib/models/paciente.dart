@@ -5,14 +5,17 @@ import 'package:rutina_app/models/usuario.dart';
 
 class Paciente extends Usuario  {
   Horario horario;
+  String pacienteId;
 
   Paciente({
     required this.horario,
+    required this.pacienteId,
     // hereda de usuario
     required super.nombre,
     required super.id,
     required super.fechaNacimiento,
     required super.fotoPerfil,
+    required super.email,
   });
 
   bool completarActividad(Actividad actividad) {
@@ -56,11 +59,14 @@ class Paciente extends Usuario  {
     final usuario = map['usuarios'];
 
     return Paciente(
-      id: usuario['id'],
+      id: usuario['id'], // usuario_id (uid de Auth)
+      pacienteId: map['id'], // id propio de la fila en 'pacientes'
       nombre: usuario['nombre'],
+      email: usuario['email'],
       fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento']),
       fotoPerfil: usuario['foto_perfil'],
       horario: Horario(bloques: []),
     );
   }
+  
 }
