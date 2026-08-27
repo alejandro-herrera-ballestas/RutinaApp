@@ -68,5 +68,5 @@ class Paciente extends Usuario  {
       horario: Horario(bloques: []),
     );
   }
-  
+
 }

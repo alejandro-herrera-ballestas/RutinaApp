@@ -7,13 +7,16 @@ class Cuidador extends Usuario {
 
   String telefono;
   List<Paciente> pacientes;
+  String cuidadorId;
 
   Cuidador({
     required this.telefono,
     required this.pacientes,
+    required this.cuidadorId,
 
     // extiende de usuario:
     required super.nombre,
+    required super.email,
     required super.fechaNacimiento,
     required super.fotoPerfil,
     required super.id,
@@ -22,7 +25,7 @@ class Cuidador extends Usuario {
   bool agregarPaciente(Paciente nuevoPaciente) {
     for (Paciente pacienteExistente in pacientes) {
       if (pacienteExistente.id == nuevoPaciente.id) {
-        return false; // se encontraron 2 iguales... no se agrega
+        return false; // se encontraron 2 iguales.no se agrega
       }
     }
     pacientes.add(nuevoPaciente);
@@ -71,8 +74,10 @@ class Cuidador extends Usuario {
     final usuario = map['usuarios'];
 
     return Cuidador(
-      id: usuario['id'],
+      id: usuario['id'], // usuario_id (uid de Auth)
+      cuidadorId: map['id'], // id propio de la fila en 'cuidadores'
       nombre: usuario['nombre'],
+      email: usuario['email'],
       fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento'],),
       telefono: map['telefono'], // 'telefono' vive en la tabla cuidadores
       fotoPerfil: usuario['foto_perfil'], // 'foto_perfil' vive en la tabla usuarios
