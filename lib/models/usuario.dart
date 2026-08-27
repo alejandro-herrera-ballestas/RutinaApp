@@ -2,10 +2,12 @@ abstract class Usuario {
   String id;
   String nombre;
   DateTime fechaNacimiento;
+  String email;
   String? fotoPerfil = "";
 
   Usuario({
     required this.nombre,
+    required this.email,
     required this.fechaNacimiento,
     required this.fotoPerfil,
     required this.id,
@@ -51,6 +53,7 @@ abstract class Usuario {
   Map<String, dynamic> toMap() {
     return {
       'nombre': nombre,
+      'email': email,
       'fecha_nacimiento': fechaNacimiento.toIso8601String().split('T')[0],
       'foto_perfil': fotoPerfil,
     };
