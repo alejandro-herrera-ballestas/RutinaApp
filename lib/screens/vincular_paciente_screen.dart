@@ -64,6 +64,10 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
       await cuidadorPacienteService.asignarPaciente(pacienteId, cuidador.cuidadorId);
 
+      // recargamos la lista del cuidador para que el nuevo paciente
+      // quede disponible en el selector de inmediato.
+      await authService.recargarPacientesDelCuidador();
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
