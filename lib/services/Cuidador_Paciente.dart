@@ -4,6 +4,23 @@ import 'package:rutina_app/utils/global.dart';
 
 class CuidadorPaciente {
   final UsuarioService usuarioService = UsuarioService();
+  
+  Future<Map<String, dynamic>?> buscarPacientePorEmail(String email) async {
+    try {
+      final response = await supabase.rpc(
+        'buscar_paciente_por_email',
+        params: {'email_buscado': email},
+      );
+
+      if (response == null || (response as List).isEmpty) {
+        return null;
+      }
+
+      return response.first as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Error al buscar paciente por correo: $e');
+    }
+  }
 
   Future<void>asignarPaciente (String pacienteId, String cuidadorId) async {
     try {
@@ -12,7 +29,7 @@ class CuidadorPaciente {
           .insert({
         'cuidador_id': cuidadorId,
         'paciente_id': pacienteId,
-          });
+      });
     }
     catch (e) {
       throw Exception('No se pudo asignar Paciente: $e');
