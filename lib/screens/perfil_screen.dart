@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rutina_app/screens/login_screen.dart';
+import 'package:rutina_app/screens/vincular_paciente_screen.dart';
 import 'package:rutina_app/utils/global.dart';
 
 class PerfilScreen extends StatefulWidget {
@@ -187,6 +188,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     icon: const Icon(Icons.settings),
                     label: const Text("Configuración"),
                   ),
+
+                  SizedBox(height: 20),
+
+                  // Solo el cuidador necesita vincular a su paciente.
+                  if (authService.cuidadorActual != null)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const VincularPacienteScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person_search),
+                      label: const Text("Vincular paciente"),
+                    ),
 
                   SizedBox(height: 20),
 
