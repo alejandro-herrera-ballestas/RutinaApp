@@ -37,42 +37,49 @@ throw Exception('No se pudo asignar Paciente: $e');
 }
 
 Future<List<Paciente>> obetenerPaciendeDeCuidador(
-String cuidadorId,
-) async {
-try {
-final response = await supabase
-    .from('cuidador_paciente')
-    .select('''
-            paciente_id,
-            pacientes(
-              *,
-              usuarios(*)
-            )
-          ''')
-    .eq('cuidador_id', cuidadorId);
+    String cuidadorId,
+    ) async {
+  try {
+    // Primero obtenemos únicamente las relaciones.
+    final relaciones = await supabase
+        .from('cuidador_paciente')
+        .select('paciente_id')
+        .eq('cuidador_id', cuidadorId);
 
-final List<Paciente> pacientes = [];
+    final List<Paciente> pacientes = [];
 
-for (final registro in response) {
-final pacienteData = registro['pacientes'];
+    for (final relacion in relaciones) {
+      final pacienteId = relacion['paciente_id'];
 
-if (pacienteData == null) {
-continue;
-}
+      if (pacienteId == null) {
+        continue;
+      }
 
-if (pacienteData is Map<String, dynamic>) {
-pacientes.add(
-Paciente.fromMap(pacienteData),
-);
-}
-}
+      try {
+        final paciente = await supabase
+            .from('pacientes')
+            .select('*, usuarios(*)')
+            .eq('id', pacienteId)
+            .maybeSingle();
 
-return pacientes;
-} catch (e) {
-throw Exception(
-'Error al obtener pacientes del cuidador: $e',
-);
-}
+        if (paciente != null) {
+          pacientes.add(
+            Paciente.fromMap(paciente),
+          );
+        }
+      } catch (e) {
+        print(
+          'No se pudo obtener el paciente $pacienteId: $e',
+        );
+      }
+    }
+
+    return pacientes;
+  } catch (e) {
+    throw Exception(
+      'Error al obtener pacientes del cuidador: $e',
+    );
+  }
 }
 
 Future<void> eliminarPaciente(
