@@ -87,9 +87,6 @@ class Actividad {
       duracion: Duration(
         seconds: map['duracion'],
       ),
-      // 'completada'/'fechaCompletada' NO viven en esta tabla: se cargan
-      // aparte desde 'progreso_actividad' (ver ProgresoActividadService)
-      // y se rellenan después, para el día que se esté consultando.
     );
   }
 }
