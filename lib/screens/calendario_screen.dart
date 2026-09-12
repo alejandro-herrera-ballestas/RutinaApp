@@ -164,6 +164,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       MaterialPageRoute(
         builder: (_) => DetalleActividadScreen(
           actividad: bloque.actividad,
+          fecha: _fechaSeleccionada,
         ),
       ),
     );
