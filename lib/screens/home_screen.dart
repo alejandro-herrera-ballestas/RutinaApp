@@ -1,298 +1,181 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 import 'package:rutina_app/widgets/actividadCard.dart';
+import 'package:rutina_app/widgets/selector_paciente.dart';
 import 'package:rutina_app/utils/global.dart';
-import 'package:rutina_app/models/actividad.dart';
-import 'package:rutina_app/services/progreso_actividad_service.dart';
 import 'add_activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-const HomeScreen({super.key});
+  const HomeScreen({super.key});
 
-@override
-State<HomeScreen> createState() => _HomeScreenState();
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-final ProgresoActividadService progresoService =
-ProgresoActividadService();
+  List<Actividad> _actividades = [];
+  bool _cargando = true;
+  String? _error;
 
-List<Actividad> actividades = [];
+  @override
+  void initState() {
+    super.initState();
+    _cargarActividades();
+  }
 
-bool cargando = true;
-String? error;
+  // Trae las actividades del paciente seleccionado (el propio paciente,
+  // o el que el cuidador tenga elegido) ya combinadas con el progreso de hoy.
+  Future<void> _cargarActividades() async {
+    final pacienteId = authService.pacienteSeleccionado?.pacienteId;
 
-@override
-void initState() {
-super.initState();
-_cargarDatos();
-}
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
 
-Future<void> _cargarDatos() async {
-setState(() {
-cargando = true;
-error = null;
-});
+    if (pacienteId == null) {
+      setState(() {
+        _actividades = [];
+        _cargando = false;
+      });
+      return;
+    }
 
-try {
-final paciente = authService.pacienteSeleccionado;
+    try {
+      final actividades = await actividadService.obtenerActividadesConProgreso(
+        pacienteId,
+        DateTime.now(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _actividades = actividades;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = "No se pudieron cargar las actividades: $e";
+        _cargando = false;
+      });
+    }
+  }
 
-// Si todavía no hay un paciente seleccionado,
-// no podemos cargar sus actividades.
-if (paciente == null) {
-setState(() {
-actividades = [];
-cargando = false;
-});
-return;
-}
+  @override
+  Widget build(BuildContext context) {
+    final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());
 
-// 1. Obtener las actividades del paciente desde Supabase.
-final actividadesPaciente =
-await actividadService.obtenerActividadesPaciente(
-paciente.pacienteId,
-);
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F5F2),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFFBF5),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "RutinaApp",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {},
+          ),
+        ],
+      ),
 
-// 2. Obtener el progreso correspondiente a HOY.
-final ids = actividadesPaciente.map((a) => a.id).toList();
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
 
-final progresoHoy = await progresoService.obtenerProgresoDelDia(
-ids,
-DateTime.now(),
-);
+            const Text(
+              "Hoy",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
 
-// 3. Aplicar el progreso de hoy a cada actividad.
-for (final actividad in actividadesPaciente) {
-final progreso = progresoHoy[actividad.id];
+            const SizedBox(height: 5),
 
-actividad.completada = progreso?.completada ?? false;
-actividad.fechaCompletada =
-progreso?.horaCompletada;
-}
+            Text(
+              fechaHoy,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.black54,
+              ),
+            ),
 
-if (!mounted) return;
+            // Solo aparece para cuidadores con más de un paciente.
+            SelectorPaciente(onCambio: _cargarActividades),
 
-setState(() {
-actividades = actividadesPaciente;
-cargando = false;
-});
-} catch (e) {
-if (!mounted) return;
+            const SizedBox(height: 10),
 
-setState(() {
-error = e.toString();
-cargando = false;
-});
-}
-}
+            if (_cargando)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              Expanded(
+                child: Center(
+                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                ),
+              )
+            else if (_actividades.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      "No hay actividades para hoy.",
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _actividades.length,
+                    itemBuilder: (context, index) {
+                      return ActividadCard(
+                        actividad: _actividades[index],
 
-Future<void> _abrirDetalle(Actividad actividad) async {
-final actualizado = await Navigator.push(
-context,
-MaterialPageRoute(
-builder: (_) => DetalleActividadScreen(
-actividad: actividad,
-),
-),
-);
+                        onTap: () async {
+                          final actualizado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetalleActividadScreen(
+                                actividad: _actividades[index],
+                              ),
+                            ),
+                          );
 
-// Si el detalle modificó algo, volvemos a consultar Supabase.
-if (actualizado == true) {
-await _cargarDatos();
-}
-}
-
-@override
-Widget build(BuildContext context) {
-final String fechaHoy =
-DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());
-
-final paciente = authService.pacienteSeleccionado;
-
-return Scaffold(
-backgroundColor: const Color(0xFFF8F5F2),
-
-appBar: AppBar(
-backgroundColor: const Color(0xFFFFFBF5),
-elevation: 0,
-centerTitle: true,
-
-title: const Text(
-"RutinaApp",
-style: TextStyle(
-fontSize: 24,
-fontWeight: FontWeight.bold,
-color: Colors.black87,
-),
-),
-
-actions: [
-IconButton(
-icon: const Icon(Icons.notifications_none),
-onPressed: () {},
-),
-],
-),
-
-body: Padding(
-padding: const EdgeInsets.all(20),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-
-const Text(
-"Hoy",
-style: TextStyle(
-fontSize: 24,
-fontWeight: FontWeight.bold,
-),
-),
-
-const SizedBox(height: 5),
-
-Text(
-fechaHoy,
-style: const TextStyle(
-fontSize: 18,
-color: Colors.black54,
-),
-),
-
-// Mostramos el paciente que está activo.
-if (paciente != null) ...[
-const SizedBox(height: 8),
-
-Text(
-paciente.nombre,
-style: const TextStyle(
-fontSize: 16,
-fontWeight: FontWeight.w500,
-color: Colors.black54,
-),
-),
-],
-
-const SizedBox(height: 20),
-
-Expanded(
-child: _construirContenido(),
-),
-],
-),
-),
-
-floatingActionButton: FloatingActionButton(
-onPressed: () async {
-final resultado = await Navigator.push(
-context,
-MaterialPageRoute(
-builder: (_) => const AddActivityScreen(),
-),
-);
-
-if (resultado == true) {
-await _cargarDatos();
-}
-},
-child: const Icon(Icons.add_task),
-),
-);
-}
-
-Widget _construirContenido() {
-if (cargando) {
-return const Center(
-child: CircularProgressIndicator(),
-);
-}
-
-if (error != null) {
-return Center(
-child: Column(
-mainAxisAlignment: MainAxisAlignment.center,
-children: [
-const Icon(
-Icons.error_outline,
-size: 50,
-color: Colors.redAccent,
-),
-
-const SizedBox(height: 12),
-
-const Text(
-'No se pudieron cargar las actividades.',
-textAlign: TextAlign.center,
-style: TextStyle(
-fontSize: 16,
-fontWeight: FontWeight.w500,
-),
-),
-
-const SizedBox(height: 8),
-
-Text(
-error!,
-textAlign: TextAlign.center,
-style: const TextStyle(
-fontSize: 12,
-color: Colors.black54,
-),
-),
-
-const SizedBox(height: 16),
-
-ElevatedButton(
-onPressed: _cargarDatos,
-child: const Text('Reintentar'),
-),
-],
-),
-);
-}
-
-if (authService.pacienteSeleccionado == null) {
-return const Center(
-child: Text(
-'No hay ningún paciente seleccionado.',
-textAlign: TextAlign.center,
-style: TextStyle(
-fontSize: 16,
-color: Colors.black54,
-),
-),
-);
-}
-
-if (actividades.isEmpty) {
-return const Center(
-child: Text(
-'No hay actividades para este paciente.',
-textAlign: TextAlign.center,
-style: TextStyle(
-fontSize: 16,
-color: Colors.black54,
-),
-),
-);
-}
-
-return RefreshIndicator(
-onRefresh: _cargarDatos,
-
-child: ListView.builder(
-itemCount: actividades.length,
-
-itemBuilder: (context, index) {
-final actividad = actividades[index];
-
-return ActividadCard(
-actividad: actividad,
-
-onTap: () => _abrirDetalle(actividad),
-);
-},
-),
-);
-}
+                          if (actualizado == true) {
+                            _cargarActividades();
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final resultado = await Navigator.push(
+            context, MaterialPageRoute(
+            builder: (_) => const AddActivityScreen(),
+          ),
+          );
+          if (resultado == true) {
+            _cargarActividades();
+          }
+        },
+        child: const Icon(Icons.add_task),
+      ),
+    );
+  }
 }
