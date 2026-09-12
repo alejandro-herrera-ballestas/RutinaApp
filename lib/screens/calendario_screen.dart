@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/BloqueHorario.dart';
+import 'package:rutina_app/widgets/selector_paciente.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 
@@ -15,27 +17,70 @@ class CalendarioScreen extends StatefulWidget {
 
 class _CalendarioScreenState extends State<CalendarioScreen> {
   List<String> _conflictivas = [];
+  List<Actividad> _actividades = [];
+
+  bool _cargando = true;
+  String? _error;
 
   DateTime _fechaSeleccionada = DateTime.now();
 
   // Altura aproximada de cada hora en el calendario.
   static const double _altoPorHora = 80;
 
+  // El calendario ahora muestra las 24 horas del día.
+  static const int _horaInicial = 0;
+  static const int _horaFinal = 23;
+
   @override
   void initState() {
     super.initState();
+    _cargarActividades();
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _regenerarHorario();
+  // CARGAR ACTIVIDADES DESDE SUPABASE (del paciente seleccionado, para el
+  // día que se esté viendo) Y REGENERAR EL HORARIO
+  Future<void> _cargarActividades() async {
+    final pacienteId = authService.pacienteSeleccionado?.pacienteId;
+
+    setState(() {
+      _cargando = true;
+      _error = null;
     });
+
+    if (pacienteId == null) {
+      setState(() {
+        _actividades = [];
+        _cargando = false;
+      });
+      _regenerarHorario();
+      return;
+    }
+
+    try {
+      final actividades = await actividadService.obtenerActividadesConProgreso(
+        pacienteId,
+        _fechaSeleccionada,
+      );
+      if (!mounted) return;
+      setState(() {
+        _actividades = actividades;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = "No se pudieron cargar las actividades: $e";
+        _cargando = false;
+      });
+    }
+
+    _regenerarHorario();
   }
 
   // GENERAR HORARIO
   void _regenerarHorario() {
-    final actividades = actividadService.obtenerActividades();
-
     final conflictos = horarioDelDia.generarDesdeActividades(
-      actividades,
+      _actividades,
       _fechaSeleccionada,
     );
 
@@ -78,7 +123,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       _fechaSeleccionada = nuevaFecha;
     });
 
-    _regenerarHorario();
+    _cargarActividades();
   }
 
   // FORMATEAR FECHA
@@ -101,13 +146,12 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   }
 
   // VOLVER A HOY
-
   void _irAHoy() {
     setState(() {
       _fechaSeleccionada = DateTime.now();
     });
 
-    _regenerarHorario();
+    _cargarActividades();
   }
 
   // ABRIR DETALLE DE ACTIVIDAD
@@ -127,7 +171,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     // Si se editaron o eliminaron datos,
     // actualizamos el calendario.
     if (resultado == true && mounted) {
-      _regenerarHorario();
+      _cargarActividades();
     }
   }
 
@@ -298,11 +342,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
           (a, b) => a.horaInicio.compareTo(b.horaInicio),
     );
 
-    const int horaInicial = 6;
-    const int horaFinal = 23;
-
     final double alturaTotal =
-        ((horaFinal - horaInicial) * _altoPorHora) + 40;
+        ((_horaFinal - _horaInicial) * _altoPorHora) + 40;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(
@@ -332,12 +373,12 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             ),
 
             // HORAS
-            for (int hora = horaInicial;
-            hora <= horaFinal;
+            for (int hora = _horaInicial;
+            hora <= _horaFinal;
             hora++)
 
               Positioned(
-                top: (hora - horaInicial) * _altoPorHora - 7,
+                top: (hora - _horaInicial) * _altoPorHora - 7,
                 left: 0,
                 width: 48,
 
@@ -353,12 +394,12 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                 ),
               ),
             // LÍNEAS HORIZONTALES
-            for (int hora = horaInicial;
-            hora <= horaFinal;
+            for (int hora = _horaInicial;
+            hora <= _horaFinal;
             hora++)
 
               Positioned(
-                top: (hora - horaInicial) * _altoPorHora,
+                top: (hora - _horaInicial) * _altoPorHora,
                 left: 65,
                 right: 0,
 
@@ -372,12 +413,12 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             for (final bloque in bloques)
               _crearPosicionActividad(
                 bloque,
-                horaInicial,
+                _horaInicial,
               ),
 
             // LÍNEA DE HORA ACTUAL
             if (_esHoy())
-              _crearLineaHoraActual(horaInicial),
+              _crearLineaHoraActual(_horaInicial),
           ],
         ),
       ),
@@ -427,7 +468,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             horaInicial * 60;
 
     if (minutosDesdeInicio < 0 ||
-        minutosDesdeInicio > (23 - horaInicial) * 60) {
+        minutosDesdeInicio > (_horaFinal - horaInicial) * 60) {
       return const SizedBox.shrink();
     }
     final double top =
@@ -561,6 +602,9 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               ),
             ),
 
+            // Solo aparece para cuidadores con más de un paciente.
+            SelectorPaciente(onCambio: _cargarActividades),
+
             // CONFLICTOS
             if (_conflictivas.isNotEmpty)
               Container(
@@ -605,7 +649,20 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
             // HORARIO
             Expanded(
-              child: horarioDelDia.bloques.isEmpty
+              child: _cargando
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(30),
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              )
+                  : horarioDelDia.bloques.isEmpty
                   ? const Center(
                 child: Padding(
                   padding: EdgeInsets.all(30),
