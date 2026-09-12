@@ -1,13 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/services/progreso_actividad_service.dart';
 import 'package:rutina_app/utils/global.dart';
 
 class ActividadService {
   final List<Actividad> _actividades = [];
+  final ProgresoActividadService progresoService = ProgresoActividadService();
 
   // ============================================================
   // SUPABASE
   // ============================================================
+
+  // Trae las actividades de un paciente YA combinadas con su progreso
+  // del día indicado (completada / hora en que se completó).
+  // Esto es lo que deben usar home_screen y calendario_screen.
+  Future<List<Actividad>> obtenerActividadesConProgreso(
+      String pacienteId,
+      DateTime fecha,
+      ) async {
+    final actividades = await obtenerActividadesPaciente(pacienteId);
+
+    final progresoPorActividad = await progresoService.obtenerProgresoDelDia(
+      actividades.map((a) => a.id).toList(),
+      fecha,
+    );
+
+    for (final actividad in actividades) {
+      final progreso = progresoPorActividad[actividad.id];
+      actividad.completada = progreso?.completada ?? false;
+      actividad.fechaCompletada = progreso?.horaCompletada;
+    }
+
+    return actividades;
+  }
 
   // Crear una actividad para un paciente
   Future<void> crearActividad(
