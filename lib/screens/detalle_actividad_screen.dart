@@ -6,10 +6,14 @@ import 'package:rutina_app/utils/global.dart';
 
 class DetalleActividadScreen extends StatefulWidget {
   final Actividad actividad;
+  // Fecha que se está viendo (hoy, si se abrió desde Inicio; o la fecha
+  // elegida en el Calendario). Determina en qué día se marca el progreso.
+  final DateTime fecha;
 
   const DetalleActividadScreen({
     super.key,
     required this.actividad,
+    required this.fecha,
   });
 
   @override
@@ -26,6 +30,8 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
   TimeOfDay? _horaSeleccionada;
   File? _imagenSeleccionada;
   Duration _duracionSeleccionada = const Duration(minutes: 15);
+
+  bool _procesando = false; // evita doble tap mientras se guarda/elimina/completa
 
   @override
   void initState() {
@@ -92,18 +98,29 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
     if (confirmar != true) return; // el usuario canceló o cerró el diálogo
 
-    final bool eliminado = actividadService.eliminarActividad(widget.actividad.id);
+    setState(() {
+      _procesando = true;
+    });
 
-    if (!eliminado) {
+    try {
+      await actividadService.eliminarActividadSupabase(widget.actividad.id);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("No se pudo eliminar la actividad."),
+        SnackBar(
+          content: Text("No se pudo eliminar la actividad: $e"),
           backgroundColor: Colors.red,
         ),
       );
-      return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _procesando = false;
+        });
+      }
     }
-    Navigator.pop(context, true);
   }
 
   // ============================ Selección/captura de imagen ============================
@@ -152,7 +169,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
   }
 
   // ============================ Guardar cambios ============================
-  void _guardarCambios() {
+  Future<void> _guardarCambios() async {
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
 
@@ -166,33 +183,78 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
       return;
     }
 
-    final bool editado = actividadService.editarActividad(
-      widget.actividad.id,
+    final actividadEditada = Actividad(
+      id: widget.actividad.id,
       nombre: nombre,
       descripcion: descripcion,
-      rutaIMG: _imagenSeleccionada?.path,
-      hora: _horaSeleccionada,
+      rutaIMG: _imagenSeleccionada?.path ?? widget.actividad.rutaIMG,
+      hora: _horaSeleccionada!,
       duracion: _duracionSeleccionada,
     );
 
-    if (!editado) {
+    setState(() {
+      _procesando = true;
+    });
+
+    try {
+      await actividadService.actualizarActividad(actividadEditada);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("No se pudo actualizar la actividad."),
+          content: Text("Actividad actualizada correctamente."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("No se pudo actualizar la actividad: $e"),
           backgroundColor: Colors.red,
         ),
       );
-      return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _procesando = false;
+        });
+      }
     }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Actividad actualizada correctamente."),
-        backgroundColor: Colors.green,
-      ),
-    );
+  // ============================ Completar actividad ============================
+  Future<void> _completarActividad() async {
+    setState(() {
+      _procesando = true;
+    });
 
-    Navigator.pop(context, true);
+    try {
+      await actividadService.progresoService.marcarProgreso(
+        widget.actividad.id,
+        widget.fecha,
+        true,
+      );
+      if (!mounted) return;
+      setState(() {
+        widget.actividad.completada = true;
+        widget.actividad.fechaCompletada = DateTime.now();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("No se pudo marcar como completada: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _procesando = false;
+        });
+      }
+    }
   }
 
   // Widget auxiliar: muestra la imagen elegida, o el placeholder si no hay ninguna
@@ -251,12 +313,12 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             tooltip: 'Eliminar actividad',
-            onPressed: _confirmarEliminar,
+            onPressed: _procesando ? null : _confirmarEliminar,
           ),
           IconButton(
             icon: const Icon(Icons.check),
             tooltip: 'Guardar cambios',
-            onPressed: _guardarCambios,
+            onPressed: _procesando ? null : _guardarCambios,
           ),
         ],
       ),
@@ -360,7 +422,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
                   // ------------------ Botón principal de guardar ------------------
                   ElevatedButton.icon(
-                    onPressed: _guardarCambios,
+                    onPressed: _procesando ? null : _guardarCambios,
                     icon: const Icon(Icons.save),
                     label: const Text("Guardar cambios"),
                     style: ElevatedButton.styleFrom(
@@ -374,15 +436,9 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
                   //--------------- Boton completar actividad-----------------------
                   ElevatedButton.icon(
-                    onPressed: widget.actividad.completada
+                    onPressed: (_procesando || widget.actividad.completada)
                         ? null
-                        : () {
-                      final completada = actividadService.completarActividad(widget.actividad.id,
-                      );
-                      if (completada) {
-                        setState(() {});
-                      }
-                    },
+                        : _completarActividad,
                     icon: Icon(
                       widget.actividad.completada
                           ? Icons.check_circle
@@ -403,7 +459,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
                 //--------------- Botón eliminar actividad -----------------------
                   OutlinedButton.icon(
-                    onPressed: _confirmarEliminar,
+                    onPressed: _procesando ? null : _confirmarEliminar,
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     label: const Text(
                       "Eliminar actividad",
