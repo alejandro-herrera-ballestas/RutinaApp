@@ -91,8 +91,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
+  bool _guardando = false;
+
   // ============================ Guardar actividad ============================
-  void _guardarActividad() {
+  Future<void> _guardarActividad() async {
 
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
@@ -107,15 +109,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       return;
     }
 
-    final actividad = Actividad(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      nombre: nombre,
-      descripcion: descripcion,
-      rutaIMG: _imagenSeleccionada?.path ?? "",
-      hora: _horaSeleccionada!,
-      duracion: _duracionSeleccionada,
-    );
-
     if (_imagenSeleccionada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -126,26 +119,60 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       return;
     }
 
-    final bool agregado = actividadService.agregarActividad(actividad);
+    // Paciente para el que se está creando la actividad: si el que inició
+    // sesión es un Paciente, es él mismo; si es un Cuidador, el que tenga
+    // elegido en el selector.
+    final pacienteId = authService.pacienteSeleccionado?.pacienteId;
 
-    if (!agregado) {
+    if (pacienteId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("No se pudo guardar la actividad."),
+          content: Text("No hay ningún paciente seleccionado."),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Actividad creada correctamente."),
-        backgroundColor: Colors.green,
-      ),
+    final actividad = Actividad(
+      id: '', // provisorio: la base genera el id real al insertar
+      nombre: nombre,
+      descripcion: descripcion,
+      rutaIMG: _imagenSeleccionada?.path ?? "",
+      hora: _horaSeleccionada!,
+      duracion: _duracionSeleccionada,
     );
 
-    Navigator.pop(context, true);
+    setState(() {
+      _guardando = true;
+    });
+
+    try {
+      await actividadService.crearActividad(actividad, pacienteId);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Actividad creada correctamente."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("No se pudo guardar la actividad: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _guardando = false;
+        });
+      }
+    }
   }
 
   @override
