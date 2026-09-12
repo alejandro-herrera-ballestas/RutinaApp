@@ -148,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             MaterialPageRoute(
                               builder: (_) => DetalleActividadScreen(
                                 actividad: _actividades[index],
+                                fecha: DateTime.now(),
                               ),
                             ),
                           );
