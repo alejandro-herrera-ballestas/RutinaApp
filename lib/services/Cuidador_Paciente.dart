@@ -27,10 +27,11 @@ String pacienteId,
 String cuidadorId,
 ) async {
 try {
-await supabase.from('cuidador_paciente').insert({
-'cuidador_id': cuidadorId,
-'paciente_id': pacienteId,
-});
+  // upsert: si el vínculo ya existía, no falla, simplemente no hace nada.
+  await supabase.from('cuidador_paciente').upsert({
+    'cuidador_id': cuidadorId,
+    'paciente_id': pacienteId,
+  }, onConflict: 'cuidador_id,paciente_id');
 } catch (e) {
 throw Exception('No se pudo asignar Paciente: $e');
 }
@@ -55,21 +56,18 @@ Future<List<Paciente>> obetenerPaciendeDeCuidador(
         continue;
       }
 
-      try {
-        final paciente = await supabase
-            .from('pacientes')
-            .select('*, usuarios(*)')
-            .eq('id', pacienteId)
-            .maybeSingle();
+      // OJO: ya no atrapamos el error acá. Si Supabase niega el acceso
+      // a este paciente (por RLS), preferimos que la excepción suba y
+      // se vea en pantalla, en vez de saltarlo en silencio.
+      final paciente = await supabase
+          .from('pacientes')
+          .select('*, usuarios(*)')
+          .eq('id', pacienteId)
+          .maybeSingle();
 
-        if (paciente != null) {
-          pacientes.add(
-            Paciente.fromMap(paciente),
-          );
-        }
-      } catch (e) {
-        print(
-          'No se pudo obtener el paciente $pacienteId: $e',
+      if (paciente != null) {
+        pacientes.add(
+          Paciente.fromMap(paciente),
         );
       }
     }
