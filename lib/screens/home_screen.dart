@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/paciente.dart';
 import '../services/paciente_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,8 +15,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final PacienteService _pacienteService = PacienteService();
 
   bool _isLoading = true;
-  List<Map<String, dynamic>> _pacientes = [];
-  Map<String, dynamic>? _pacienteSeleccionado;
+  List<Paciente> _pacientes = [];
+  Paciente? _pacienteSeleccionado;
 
   @override
   void initState() {
@@ -37,7 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
     });
 
-    final pacientesObtenidos = await _pacienteService.obtenerPacientesDelCuidador(userId);
+    // Se utiliza el nombre correcto del método en PacienteService
+    final pacientesObtenidos = await _pacienteService.obtenerPacientesDeCuidador(userId);
 
     setState(() {
       _pacientes = pacientesObtenidos;
@@ -88,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _pacienteSeleccionado!['nombre'] ?? 'Paciente sin nombre',
+                                _pacienteSeleccionado!.nombre,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -96,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'ID: ${_pacienteSeleccionado!['id']}',
+                                'ID: ${_pacienteSeleccionado!.id}',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 12,
@@ -109,17 +111,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           DropdownButton<String>(
                             underline: const SizedBox(),
                             icon: const Icon(Icons.arrow_drop_down),
+                            value: _pacienteSeleccionado!.id,
                             items: _pacientes.map((p) {
                               return DropdownMenuItem<String>(
-                                value: p['id'].toString(),
-                                child: Text(p['nombre'] ?? 'Paciente'),
+                                value: p.id,
+                                child: Text(p.nombre),
                               );
                             }).toList(),
                             onChanged: (nuevoId) {
                               if (nuevoId != null) {
                                 setState(() {
                                   _pacienteSeleccionado = _pacientes.firstWhere(
-                                        (element) => element['id'].toString() == nuevoId,
+                                        (element) => element.id == nuevoId,
                                   );
                                 });
                               }
@@ -137,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                // Aquí van las tarjetas de actividades vinculadas al paciente activo
+                // Tarjetas de actividades asociadas al paciente activo
               ] else ...[
                 // --- ESTADO SIN PACIENTE VINCULADO ---
                 Card(
