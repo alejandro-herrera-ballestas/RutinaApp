@@ -34,7 +34,7 @@ class AuthService {
   Future<void> recargarPacientesDelCuidador() async {
     if (_cuidadorActual == null) return;
     pacientesDelCuidador = await cuidadorPacienteService
-        .obetenerPaciendeDeCuidador(_cuidadorActual!.cuidadorId);
+        .obtenerPacientesDeCuidador(_cuidadorActual!.cuidadorId);
 
     if (pacienteSeleccionado == null ||
         !pacientesDelCuidador.any((p) => p.pacienteId == pacienteSeleccionado!.pacienteId)) {

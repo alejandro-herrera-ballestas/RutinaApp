@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rutina_app/screens/login_screen.dart';
 import 'package:rutina_app/screens/vincular_paciente_screen.dart';
+import 'package:rutina_app/models/paciente.dart';
+import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/utils/global.dart';
 
 class PerfilScreen extends StatefulWidget {
@@ -19,6 +21,24 @@ class _PerfilScreenState extends State<PerfilScreen> {
   final usuario = authService.usuarioActual;
   final String correo = supabase.auth.currentUser?.email ?? "";
   final String rol = authService.cuidadorActual != null ? "Cuidador" : "Paciente";
+  late Future<List<dynamic>> _vinculadosFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _vinculadosFuture = _obtenerVinculados();
+  }
+
+  Future<List<dynamic>> _obtenerVinculados() async {
+    if (authService.cuidadorActual != null) {
+      return await authService.cuidadorPacienteService
+          .obtenerPacientesDeCuidador(authService.cuidadorActual!.cuidadorId);
+    } else if (authService.pacienteActual != null) {
+      return await authService.cuidadorPacienteService
+          .obtenerCuidadoresDePaciente(authService.pacienteActual!.pacienteId);
+    }
+    return [];
+  }
 
   // Función para abrir la cámara o la galería
   Future<void> _pickImage(ImageSource source) async {
@@ -179,6 +199,52 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
                   LinearProgressIndicator(
                     value: total == 0 ? 0 : completadas / total,
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  Text(
+                    authService.cuidadorActual != null ? "Pacientes asignados" : "Cuidadores vinculados",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  FutureBuilder<List<dynamic>>(
+                    future: _vinculadosFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(10.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Text("Error: ${snapshot.error}");
+                      }
+                      final lista = snapshot.data ?? [];
+                      if (lista.isEmpty) {
+                        return const Text("No hay personas vinculadas aún.");
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: lista.map((item) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.person),
+                            ),
+                            title: Text(item.nombre),
+                            subtitle: Text(item.email),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
 
                   SizedBox(height: 20),

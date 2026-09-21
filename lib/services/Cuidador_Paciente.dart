@@ -1,4 +1,5 @@
 import 'package:rutina_app/models/paciente.dart';
+import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/services/usuario_service.dart';
 import 'package:rutina_app/utils/global.dart';
 
@@ -39,7 +40,7 @@ class CuidadorPaciente {
     }
   }
 
-  Future<List<Paciente>> obetenerPaciendeDeCuidador(
+  Future<List<Paciente>> obtenerPacientesDeCuidador(
     String cuidadorId,
   ) async {
     try {
@@ -95,6 +96,45 @@ class CuidadorPaciente {
     } catch (e) {
       throw Exception(
         'Error al quitar paciente del cuidador: $e',
+      );
+    }
+  }
+
+  Future<List<Cuidador>> obtenerCuidadoresDePaciente(
+    String pacienteId,
+  ) async {
+    try {
+      final relaciones = await supabase
+          .from('cuidador_paciente')
+          .select('cuidador_id')
+          .eq('paciente_id', pacienteId);
+
+      final List<Cuidador> cuidadores = [];
+
+      for (final relacion in relaciones) {
+        final cuidadorId = relacion['cuidador_id'];
+
+        if (cuidadorId == null) {
+          continue;
+        }
+
+        final cuidadorMap = await supabase
+            .from('cuidadores')
+            .select('*, usuarios(*)')
+            .eq('id', cuidadorId)
+            .maybeSingle();
+
+        if (cuidadorMap != null) {
+          cuidadores.add(
+            Cuidador.fromMap(cuidadorMap),
+          );
+        }
+      }
+
+      return cuidadores;
+    } catch (e) {
+      throw Exception(
+        'Error al obtener cuidadores del paciente: $e',
       );
     }
   }
