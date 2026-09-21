@@ -30,7 +30,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     super.dispose();
   }
 
-  // 1. Cargar la lista de pacientes vinculados al cuidador actual
+  // 1. Cargar la lista de pacientes vinculados (Consulta en 2 pasos)
   Future<void> _cargarPacientesVinculados() async {
     final String? userId = _supabase.auth.currentUser?.id;
 
@@ -44,28 +44,32 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     });
 
     try {
-      // Realizamos el JOIN con la tabla 'pacientes' utilizando la relación cuidador_id -> paciente_id
-      final response = await _supabase
+      // Paso 1: Obtener la lista de IDs de pacientes vinculados al cuidador
+      final relaciones = await _supabase
           .from('cuidador_paciente')
-          .select('paciente_id, pacientes(*, usuarios(*))')
+          .select('paciente_id')
           .eq('cuidador_id', userId);
 
-      final List<Map<String, dynamic>> listaTemporal = [];
+      final List<String> ids = (relaciones as List)
+          .map((e) => e['paciente_id'].toString())
+          .toList();
 
-      for (var item in (response as List)) {
-        if (item['pacientes'] != null) {
-          final pMap = item['pacientes'] as Map<String, dynamic>;
-          final uMap = pMap['usuarios'] as Map<String, dynamic>? ?? {};
-          listaTemporal.add({
-            'id': pMap['id'],
-            'nombre': uMap['nombre'] ?? 'Sin Nombre',
-            'email': uMap['email'] ?? '',
-          });
-        }
+      if (ids.isEmpty) {
+        setState(() {
+          _pacientesVinculados = [];
+          _isLoading = false;
+        });
+        return;
       }
 
+      // Paso 2: Traer la información completa de la tabla 'pacientes' (en plural)
+      final pacientes = await _supabase
+          .from('pacientes')
+          .select()
+          .inFilter('id', ids);
+
       setState(() {
-        _pacientesVinculados = listaTemporal;
+        _pacientesVinculados = List<Map<String, dynamic>>.from(pacientes as List);
       });
     } catch (e) {
       _mostrarMensaje('Error al obtener la lista de pacientes: $e');
@@ -93,22 +97,18 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     });
 
     try {
-      // Buscamos al paciente por su ID (UUID)
-      final pacienteResponse = await _supabase
+      // Buscamos al paciente en la tabla 'pacientes' por su ID
+      final paciente = await _supabase
           .from('pacientes')
-          .select('*, usuarios(*)')
+          .select()
           .eq('id', codigo)
           .maybeSingle();
 
-      if (pacienteResponse == null) {
+      if (paciente == null) {
         _mostrarMensaje('No se encontró ningún paciente con ese identificador.');
       } else {
-        final uMap = pacienteResponse['usuarios'] as Map<String, dynamic>? ?? {};
         setState(() {
-          _pacienteEncontrado = {
-            'id': pacienteResponse['id'],
-            'nombre': uMap['nombre'] ?? 'Sin Nombre',
-          };
+          _pacienteEncontrado = paciente;
         });
       }
     } catch (e) {
@@ -136,7 +136,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
     final String idPaciente = _pacienteEncontrado!['id'].toString();
 
-    // Verificación preliminar local: si ya está en la lista mostrada
+    // Verificación preliminar local
     final yaExisteEnLista = _pacientesVinculados.any((p) => p['id'].toString() == idPaciente);
     if (yaExisteEnLista) {
       _mostrarMensaje('Este paciente ya se encuentra vinculado a tu cuenta.');
@@ -148,7 +148,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     });
 
     try {
-      // Verificación en Supabase
+      // Verificación directa en la base de datos
       final existeRelacion = await _supabase
           .from('cuidador_paciente')
           .select()
@@ -164,7 +164,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
         return;
       }
 
-      // Inserción en la tabla de unión
+      // Inserción en la tabla relacional
       await _supabase.from('cuidador_paciente').insert({
         'cuidador_id': idCuidador,
         'paciente_id': idPaciente,
@@ -172,7 +172,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
       _mostrarMensaje('¡Paciente vinculado exitosamente!', esError: false);
 
-      // Limpiar formulario y actualizar la lista de la pantalla
+      // Limpiar formulario y recargar la lista
       _codigoController.clear();
       setState(() {
         _pacienteEncontrado = null;
@@ -220,7 +220,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- SECCIÓN: Búsqueda y Vinculación ---
+              // --- SECCIÓN: Búsqueda ---
               const Text(
                 'Ingresa el ID del Paciente',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
