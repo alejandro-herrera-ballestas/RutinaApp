@@ -23,23 +23,25 @@ class CuidadorPaciente {
   }
 
   Future<void> asignarPaciente(
-    String pacienteId,
-    String cuidadorId,
-  ) async {
+      String pacienteId,
+      String cuidadorId,
+      ) async {
     try {
-      // upsert: si el vínculo ya existía, no falla, simplemente no hace nada.
+      // ignoreDuplicates -> ON CONFLICT DO NOTHING: si el vínculo ya existía,
+      // no intenta actualizar nada (eso evitaría necesitar una política de
+      // UPDATE), simplemente no hace nada y no falla.
       await supabase.from('cuidador_paciente').upsert({
         'cuidador_id': cuidadorId,
         'paciente_id': pacienteId,
-      }, onConflict: 'cuidador_id,paciente_id');
+      }, onConflict: 'cuidador_id,paciente_id', ignoreDuplicates: true);
     } catch (e) {
       throw Exception('No se pudo asignar Paciente: $e');
     }
   }
 
   Future<List<Paciente>> obetenerPaciendeDeCuidador(
-    String cuidadorId,
-  ) async {
+      String cuidadorId,
+      ) async {
     try {
       // Primero obtenemos únicamente las relaciones.
       final relaciones = await supabase
@@ -81,9 +83,9 @@ class CuidadorPaciente {
   }
 
   Future<void> eliminarPaciente(
-    String cuidadorId,
-    String pacienteId,
-  ) async {
+      String cuidadorId,
+      String pacienteId,
+      ) async {
     try {
       await supabase
           .from('cuidador_paciente')
