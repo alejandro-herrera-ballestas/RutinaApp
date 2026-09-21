@@ -22,20 +22,17 @@ throw Exception('Error al buscar paciente por correo: $e');
 }
 }
 
-Future<void> asignarPaciente(
-String pacienteId,
-String cuidadorId,
-) async {
+Future<void> asignarPaciente(String pacienteId, String cuidadorId,) async {
 try {
   // upsert: si el vínculo ya existía, no falla, simplemente no hace nada.
-  await supabase.from('cuidador_paciente').upsert({
-    'cuidador_id': cuidadorId,
-    'paciente_id': pacienteId,
-  }, onConflict: 'cuidador_id,paciente_id');
-} catch (e) {
-throw Exception('No se pudo asignar Paciente: $e');
-}
-}
+        await supabase.from('cuidador_paciente').upsert({
+          'cuidador_id': cuidadorId,
+          'paciente_id': pacienteId,
+        }, onConflict: 'cuidador_id,paciente_id');
+      } catch (e) {
+        throw Exception('No se pudo asignar Paciente: $e');
+        }
+    }
 
 Future<List<Paciente>> obetenerPaciendeDeCuidador(
     String cuidadorId,
