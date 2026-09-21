@@ -7,7 +7,7 @@ class PacienteService {
   // 1. Crear un nuevo paciente en la base de datos (Usado en registrarUsuario)
   Future<void> crearPaciente(Paciente paciente) async {
     try {
-      await _supabase.from('paciente').insert({
+      await _supabase.from('pacientes').insert({
         'id': paciente.id,
         'nombre': paciente.nombre,
         'email': paciente.email,
@@ -24,9 +24,9 @@ class PacienteService {
   Future<Paciente?> obtenerPacientePorUsuarioId(String idUsuario) async {
     try {
       final response = await _supabase
-          .from('paciente')
-          .select()
-          .eq('id', idUsuario)
+          .from('pacientes')
+          .select('*, usuarios(*)')
+          .eq('usuario_id', idUsuario)
           .maybeSingle();
 
       if (response == null) return null;
@@ -43,14 +43,14 @@ class PacienteService {
     try {
       final response = await _supabase
           .from('cuidador_paciente')
-          .select('paciente_id, paciente(*)')
+          .select('paciente_id, pacientes(*, usuarios(*))')
           .eq('cuidador_id', idCuidador);
 
       final List<Paciente> pacientes = [];
 
       for (var item in (response as List)) {
-        if (item['paciente'] != null) {
-          pacientes.add(Paciente.fromMap(item['paciente'] as Map<String, dynamic>));
+        if (item['pacientes'] != null) {
+          pacientes.add(Paciente.fromMap(item['pacientes'] as Map<String, dynamic>));
         }
       }
 
@@ -65,8 +65,8 @@ class PacienteService {
   Future<Paciente?> obtenerPacientePorId(String idPaciente) async {
     try {
       final response = await _supabase
-          .from('paciente')
-          .select()
+          .from('pacientes')
+          .select('*, usuarios(*)')
           .eq('id', idPaciente)
           .maybeSingle();
 

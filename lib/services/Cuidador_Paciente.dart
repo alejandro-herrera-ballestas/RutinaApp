@@ -26,13 +26,10 @@ class CuidadorPaciente {
   }
 
   Future<void> asignarPaciente(
-    String pacienteId,
-    String cuidadorId,
-  ) async {
+      String pacienteId,
+      String cuidadorId,
+      ) async {
     try {
-      // ignoreDuplicates -> ON CONFLICT DO NOTHING: si el vínculo ya existía,
-      // no intenta actualizar nada (eso evitaría necesitar una política de
-      // UPDATE), simplemente no hace nada y no falla.
       await supabase.from('cuidador_paciente').upsert({
         'cuidador_id': cuidadorId,
         'paciente_id': pacienteId,
@@ -43,10 +40,9 @@ class CuidadorPaciente {
   }
 
   Future<List<Paciente>> obtenerPacientesDeCuidador(
-    String cuidadorId,
-  ) async {
+      String cuidadorId,
+      ) async {
     try {
-      // Primero obtenemos únicamente las relaciones.
       final relaciones = await supabase
           .from('cuidador_paciente')
           .select('paciente_id')
@@ -61,9 +57,6 @@ class CuidadorPaciente {
           continue;
         }
 
-        // OJO: ya no atrapamos el error acá. Si Supabase niega el acceso
-        // a este paciente (por RLS), preferimos que la excepción suba y
-        // se vea en pantalla, en vez de saltarlo en silencio.
         final paciente = await supabase
             .from('pacientes')
             .select('*, usuarios(*)')
@@ -86,9 +79,9 @@ class CuidadorPaciente {
   }
 
   Future<void> eliminarPaciente(
-    String cuidadorId,
-    String pacienteId,
-  ) async {
+      String cuidadorId,
+      String pacienteId,
+      ) async {
     try {
       await supabase
           .from('cuidador_paciente')
@@ -103,8 +96,8 @@ class CuidadorPaciente {
   }
 
   Future<List<Cuidador>> obtenerCuidadoresDePaciente(
-    String pacienteId,
-  ) async {
+      String pacienteId,
+      ) async {
     try {
       final relaciones = await supabase
           .from('cuidador_paciente')
@@ -144,8 +137,8 @@ class CuidadorPaciente {
   // 1. Vincular un paciente
   Future<void> vincularPaciente(String idCuidador, String idPaciente) async {
     await _supabase.from('cuidador_paciente').insert({
-      'id_cuidador': idCuidador,
-      'id_paciente': idPaciente,
+      'cuidador_id': idCuidador,
+      'paciente_id': idPaciente,
     });
   }
 
@@ -153,8 +146,8 @@ class CuidadorPaciente {
   Future<List<Map<String, dynamic>>> obtenerPacientesVinculados(String idCuidador) async {
     final response = await _supabase
         .from('cuidador_paciente')
-        .select('id_paciente, paciente(*)') // Trae todos los datos del paciente mediante JOIN
-        .eq('id_cuidador', idCuidador);
+        .select('paciente_id, paciente:pacientes(*, usuarios(*))')
+        .eq('cuidador_id', idCuidador);
 
     return List<Map<String, dynamic>>.from(response);
   }

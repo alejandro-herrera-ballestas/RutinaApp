@@ -44,17 +44,23 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     });
 
     try {
-      // Realizamos el JOIN con la tabla 'paciente' utilizando la relación cuidador_id -> paciente_id
+      // Realizamos el JOIN con la tabla 'pacientes' utilizando la relación cuidador_id -> paciente_id
       final response = await _supabase
           .from('cuidador_paciente')
-          .select('paciente_id, paciente(*)')
+          .select('paciente_id, pacientes(*, usuarios(*))')
           .eq('cuidador_id', userId);
 
       final List<Map<String, dynamic>> listaTemporal = [];
 
       for (var item in (response as List)) {
-        if (item['paciente'] != null) {
-          listaTemporal.add(item['paciente'] as Map<String, dynamic>);
+        if (item['pacientes'] != null) {
+          final pMap = item['pacientes'] as Map<String, dynamic>;
+          final uMap = pMap['usuarios'] as Map<String, dynamic>? ?? {};
+          listaTemporal.add({
+            'id': pMap['id'],
+            'nombre': uMap['nombre'] ?? 'Sin Nombre',
+            'email': uMap['email'] ?? '',
+          });
         }
       }
 
@@ -88,17 +94,21 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
     try {
       // Buscamos al paciente por su ID (UUID)
-      final paciente = await _supabase
-          .from('paciente')
-          .select()
+      final pacienteResponse = await _supabase
+          .from('pacientes')
+          .select('*, usuarios(*)')
           .eq('id', codigo)
           .maybeSingle();
 
-      if (paciente == null) {
+      if (pacienteResponse == null) {
         _mostrarMensaje('No se encontró ningún paciente con ese identificador.');
       } else {
+        final uMap = pacienteResponse['usuarios'] as Map<String, dynamic>? ?? {};
         setState(() {
-          _pacienteEncontrado = paciente;
+          _pacienteEncontrado = {
+            'id': pacienteResponse['id'],
+            'nombre': uMap['nombre'] ?? 'Sin Nombre',
+          };
         });
       }
     } catch (e) {
