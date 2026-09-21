@@ -1,34 +1,68 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/paciente.dart';
 
 class PacienteService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Obtiene la lista completa de pacientes vinculados a un cuidador específico
-  Future<List<Map<String, dynamic>>> obtenerPacientesDelCuidador(String idCuidador) async {
+  // 1. Crear un nuevo paciente en la base de datos (Usado en registrarUsuario)
+  Future<void> crearPaciente(Paciente paciente) async {
     try {
-      // Hacemos el JOIN entre cuidador_paciente y paciente utilizando las claves correctas
+      await _supabase.from('paciente').insert({
+        'id': paciente.id,
+        'nombre': paciente.nombre,
+        'email': paciente.email,
+        'fecha_nacimiento': paciente.fechaNacimiento.toIso8601String(),
+        'foto_perfil': paciente.fotoPerfil,
+      });
+    } catch (e) {
+      print('Error al crear paciente: $e');
+      rethrow;
+    }
+  }
+
+  // 2. Obtener paciente por su UUID de usuario (Usado en login/registro)
+  Future<Paciente?> obtenerPacientePorUsuarioId(String idUsuario) async {
+    try {
+      final response = await _supabase
+          .from('paciente')
+          .select()
+          .eq('id', idUsuario)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      return Paciente.fromMap(response);
+    } catch (e) {
+      print('Error al obtener paciente por ID de usuario: $e');
+      return null;
+    }
+  }
+
+  // 3. Obtener pacientes vinculados a un cuidador mediante JOIN
+  Future<List<Paciente>> obtenerPacientesDeCuidador(String idCuidador) async {
+    try {
       final response = await _supabase
           .from('cuidador_paciente')
           .select('paciente_id, paciente(*)')
           .eq('cuidador_id', idCuidador);
 
-      final List<Map<String, dynamic>> listaPacientes = [];
+      final List<Paciente> pacientes = [];
 
       for (var item in (response as List)) {
         if (item['paciente'] != null) {
-          listaPacientes.add(item['paciente'] as Map<String, dynamic>);
+          pacientes.add(Paciente.fromMap(item['paciente'] as Map<String, dynamic>));
         }
       }
 
-      return listaPacientes;
+      return pacientes;
     } catch (e) {
-      print('Error al obtener los pacientes del cuidador: $e');
+      print('Error al obtener pacientes del cuidador: $e');
       return [];
     }
   }
 
-  /// Obtiene un paciente específico por su ID (UUID)
-  Future<Map<String, dynamic>?> obtenerPacientePorId(String idPaciente) async {
+  // 4. Obtener un paciente específico por su ID
+  Future<Paciente?> obtenerPacientePorId(String idPaciente) async {
     try {
       final response = await _supabase
           .from('paciente')
@@ -36,7 +70,9 @@ class PacienteService {
           .eq('id', idPaciente)
           .maybeSingle();
 
-      return response;
+      if (response == null) return null;
+
+      return Paciente.fromMap(response);
     } catch (e) {
       print('Error al obtener paciente por ID: $e');
       return null;
