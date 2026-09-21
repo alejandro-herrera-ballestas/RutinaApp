@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:rutina_app/screens/login_screen.dart';
 import 'package:rutina_app/screens/vincular_paciente_screen.dart';
 import 'package:rutina_app/utils/global.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({Key? key}) : super(key: key);
@@ -28,9 +29,26 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   Future<List<dynamic>> _obtenerVinculados() async {
+    final String? uidActual = Supabase.instance.client.auth.currentUser?.id;
+    if (uidActual == null) return [];
+
     if (authService.cuidadorActual != null) {
-      return await authService.cuidadorPacienteService
-          .obtenerPacientesDeCuidador(authService.cuidadorActual!.cuidadorId);
+      try {
+        final pacientesVinculados = await authService.cuidadorPacienteService
+            .obtenerPacientesVinculados(uidActual);
+        
+        return pacientesVinculados.map((item) {
+          final pacienteMap = item['paciente'] as Map<String, dynamic>? ?? {};
+          final usuariosMap = pacienteMap['usuarios'] as Map<String, dynamic>? ?? {};
+          return {
+            'nombre': usuariosMap['nombre'] ?? 'Sin nombre',
+            'email': usuariosMap['email'] ?? 'Sin correo',
+          };
+        }).toList();
+      } catch (e) {
+        return await authService.cuidadorPacienteService
+            .obtenerPacientesDeCuidador(authService.cuidadorActual!.cuidadorId);
+      }
     } else if (authService.pacienteActual != null) {
       return await authService.cuidadorPacienteService
           .obtenerCuidadoresDePaciente(authService.pacienteActual!.pacienteId);
@@ -232,13 +250,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: lista.map((item) {
+                          final String nombre = item is Map ? item['nombre'] : item.nombre;
+                          final String email = item is Map ? item['email'] : item.email;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const CircleAvatar(
                               child: Icon(Icons.person),
                             ),
-                            title: Text(item.nombre),
-                            subtitle: Text(item.email),
+                            title: Text(nombre),
+                            subtitle: Text(email),
                           );
                         }).toList(),
                       );

@@ -2,9 +2,11 @@ import 'package:rutina_app/models/paciente.dart';
 import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/services/usuario_service.dart';
 import 'package:rutina_app/utils/global.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CuidadorPaciente {
   final UsuarioService usuarioService = UsuarioService();
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Future<Map<String, dynamic>?> buscarPacientePorEmail(String email) async {
     try {
@@ -137,5 +139,23 @@ class CuidadorPaciente {
         'Error al obtener cuidadores del paciente: $e',
       );
     }
+  }
+
+  // 1. Vincular un paciente
+  Future<void> vincularPaciente(String idCuidador, String idPaciente) async {
+    await _supabase.from('cuidador_paciente').insert({
+      'id_cuidador': idCuidador,
+      'id_paciente': idPaciente,
+    });
+  }
+
+  // 2. Obtener la lista de pacientes vinculados
+  Future<List<Map<String, dynamic>>> obtenerPacientesVinculados(String idCuidador) async {
+    final response = await _supabase
+        .from('cuidador_paciente')
+        .select('id_paciente, paciente(*)') // Trae todos los datos del paciente mediante JOIN
+        .eq('id_cuidador', idCuidador);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 }
