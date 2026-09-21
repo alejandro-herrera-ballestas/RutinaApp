@@ -10,7 +10,7 @@ class VincularPacienteScreen extends StatefulWidget {
 
 class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final TextEditingController _codigoController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   bool _isLoading = false;
   bool _isSearching = false;
@@ -26,11 +26,11 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
   @override
   void dispose() {
-    _codigoController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  // 1. Cargar la lista de pacientes vinculados (Consulta en 2 pasos)
+  // 1. Cargar la lista de pacientes vinculados (Consulta en 2 pasos para evitar errores de JOIN/embed)
   Future<void> _cargarPacientesVinculados() async {
     final String? userId = _supabase.auth.currentUser?.id;
 
@@ -62,7 +62,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
         return;
       }
 
-      // Paso 2: Traer la información completa de la tabla 'pacientes' (en plural)
+      // Paso 2: Traer la información completa de la tabla 'pacientes'
       final pacientes = await _supabase
           .from('pacientes')
           .select()
@@ -80,12 +80,12 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     }
   }
 
-  // 2. Buscar paciente por ID o Código de vinculación
+  // 2. Buscar paciente exclusivamente por Correo Electrónico
   Future<void> _buscarPaciente() async {
-    final codigo = _codigoController.text.trim();
+    final email = _emailController.text.trim();
 
-    if (codigo.isEmpty) {
-      _mostrarMensaje('Por favor ingresa un código o identificador de paciente.');
+    if (email.isEmpty) {
+      _mostrarMensaje('Por favor ingresa el correo electrónico del paciente.');
       return;
     }
 
@@ -97,15 +97,15 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
     });
 
     try {
-      // Buscamos al paciente en la tabla 'pacientes' por su ID
+      // Buscamos directamente en la columna 'email' de la tabla 'pacientes'
       final paciente = await _supabase
           .from('pacientes')
           .select()
-          .eq('id', codigo)
+          .eq('email', email)
           .maybeSingle();
 
       if (paciente == null) {
-        _mostrarMensaje('No se encontró ningún paciente con ese identificador.');
+        _mostrarMensaje('No se encontró ningún paciente registrado con ese correo.');
       } else {
         setState(() {
           _pacienteEncontrado = paciente;
@@ -173,7 +173,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
       _mostrarMensaje('¡Paciente vinculado exitosamente!', esError: false);
 
       // Limpiar formulario y recargar la lista
-      _codigoController.clear();
+      _emailController.clear();
       setState(() {
         _pacienteEncontrado = null;
       });
@@ -220,9 +220,9 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- SECCIÓN: Búsqueda ---
+              // --- SECCIÓN: Búsqueda por Email ---
               const Text(
-                'Ingresa el ID del Paciente',
+                'Ingresa el Correo del Paciente',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -230,9 +230,10 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: _codigoController,
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
-                        hintText: 'Ej: UUID del paciente',
+                        hintText: 'Ej: paciente@correo.com',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -294,8 +295,14 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                                   fontSize: 16,
                                 ),
                               ),
-                              if (_pacienteEncontrado!['edad'] != null)
-                                Text('Edad: ${_pacienteEncontrado!['edad']} años'),
+                              if (_pacienteEncontrado!['email'] != null)
+                                Text(
+                                  _pacienteEncontrado!['email'].toString(),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -365,7 +372,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                           paciente['nombre'] ?? 'Paciente sin nombre',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Text('ID: ${paciente['id']}'),
+                        subtitle: Text(paciente['email'] ?? 'Sin correo'),
                       ),
                     );
                   },
