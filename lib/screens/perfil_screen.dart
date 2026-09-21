@@ -258,13 +258,18 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   // Solo el cuidador necesita vincular a su paciente.
                   if (authService.cuidadorActual != null)
                     ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        final resultado = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const VincularPacienteScreen(),
                           ),
                         );
+                        if (resultado == true) {
+                          setState(() {
+                            _vinculadosFuture = _obtenerVinculados();
+                          });
+                        }
                       },
                       icon: const Icon(Icons.person_search),
                       label: const Text("Vincular paciente"),
