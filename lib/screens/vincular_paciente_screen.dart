@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VincularPacienteScreen extends StatefulWidget {
-  const VincularPacienteScreen({Key? key}) : super(key: key);
+  const VincularPacienteScreen({super.key});
 
   @override
   State<VincularPacienteScreen> createState() => _VincularPacienteScreenState();

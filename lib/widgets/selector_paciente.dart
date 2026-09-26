@@ -53,7 +53,7 @@ class SelectorPaciente extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: DropdownButtonFormField<Paciente>(
-        value: authService.pacienteSeleccionado,
+        initialValue: authService.pacienteSeleccionado,
         decoration: const InputDecoration(
           labelText: "Paciente",
           prefixIcon: Icon(Icons.person),
