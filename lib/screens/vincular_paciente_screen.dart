@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:rutina_app/services/Cuidador_Paciente.dart';
+import 'package:rutina_app/utils/global.dart';
 
+// Pantalla donde un Cuidador busca a su Paciente por correo electrónico
+// y queda vinculado a él (tabla cuidador_paciente).
 class VincularPacienteScreen extends StatefulWidget {
   const VincularPacienteScreen({super.key});
 
@@ -9,378 +12,172 @@ class VincularPacienteScreen extends StatefulWidget {
 }
 
 class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final CuidadorPaciente cuidadorPacienteService = CuidadorPaciente();
 
-  bool _isLoading = false;
-  bool _isSearching = false;
+  bool buscando = false;
 
-  List<Map<String, dynamic>> _pacientesVinculados = [];
-  Map<String, dynamic>? _pacienteEncontrado;
-
-  @override
-  void initState() {
-    super.initState();
-    _cargarPacientesVinculados();
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  // 1. Cargar la lista de pacientes vinculados (Consulta en 2 pasos para evitar errores de JOIN/embed)
-  Future<void> _cargarPacientesVinculados() async {
-    final String? userId = _supabase.auth.currentUser?.id;
-
-    if (userId == null) {
-      _mostrarMensaje('No hay un usuario autenticado activo.');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Paso 1: Obtener la lista de IDs de pacientes vinculados al cuidador
-      final relaciones = await _supabase
-          .from('cuidador_paciente')
-          .select('paciente_id')
-          .eq('cuidador_id', userId);
-
-      final List<String> ids = (relaciones as List)
-          .map((e) => e['paciente_id'].toString())
-          .toList();
-
-      if (ids.isEmpty) {
-        setState(() {
-          _pacientesVinculados = [];
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Paso 2: Traer la información completa de la tabla 'pacientes'
-      final pacientes = await _supabase
-          .from('pacientes')
-          .select()
-          .inFilter('id', ids);
-
-      setState(() {
-        _pacientesVinculados = List<Map<String, dynamic>>.from(pacientes as List);
-      });
-    } catch (e) {
-      _mostrarMensaje('Error al obtener la lista de pacientes: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // 2. Buscar paciente exclusivamente por Correo Electrónico
-  Future<void> _buscarPaciente() async {
-    final email = _emailController.text.trim();
+  Future<void> _buscarYVincular() async {
+    final email = emailController.text.trim();
 
     if (email.isEmpty) {
-      _mostrarMensaje('Por favor ingresa el correo electrónico del paciente.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Ingresa el correo del paciente."),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    FocusScope.of(context).unfocus();
-
-    setState(() {
-      _isSearching = true;
-      _pacienteEncontrado = null;
-    });
-
-    try {
-      // Buscamos directamente en la columna 'email' de la tabla 'pacientes'
-      final paciente = await _supabase
-          .from('pacientes')
-          .select()
-          .eq('email', email)
-          .maybeSingle();
-
-      if (paciente == null) {
-        _mostrarMensaje('No se encontró ningún paciente registrado con ese correo.');
-      } else {
-        setState(() {
-          _pacienteEncontrado = paciente;
-        });
-      }
-    } catch (e) {
-      _mostrarMensaje('Error en la búsqueda del paciente: $e');
-    } finally {
-      setState(() {
-        _isSearching = false;
-      });
-    }
-  }
-
-  // 3. Vincular el paciente encontrado al cuidador actual
-  Future<void> _vincularPaciente() async {
-    final String? idCuidador = _supabase.auth.currentUser?.id;
-
-    if (idCuidador == null) {
-      _mostrarMensaje('Sesión no válida. Por favor inicia sesión nuevamente.');
-      return;
-    }
-
-    if (_pacienteEncontrado == null) {
-      _mostrarMensaje('Selecciona un paciente válido para vincular.');
-      return;
-    }
-
-    final String idPaciente = _pacienteEncontrado!['id'].toString();
-
-    // Verificación preliminar local
-    final yaExisteEnLista = _pacientesVinculados.any((p) => p['id'].toString() == idPaciente);
-    if (yaExisteEnLista) {
-      _mostrarMensaje('Este paciente ya se encuentra vinculado a tu cuenta.');
+    // OJO: usamos el cuidador logueado y su 'cuidadorId' (el id propio de
+    // la tabla 'cuidadores', NO el usuario_id / uid de Auth). Nunca hay
+    // que usar supabase.auth.currentUser?.id directamente acá.
+    final cuidador = authService.cuidadorActual;
+    if (cuidador == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Debes iniciar sesión como cuidador para vincular un paciente."),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
     setState(() {
-      _isLoading = true;
+      buscando = true;
     });
 
     try {
-      // Verificación directa en la base de datos
-      final existeRelacion = await _supabase
-          .from('cuidador_paciente')
-          .select()
-          .eq('cuidador_id', idCuidador)
-          .eq('paciente_id', idPaciente)
-          .maybeSingle();
+      // Búsqueda vía la función 'buscar_paciente_por_email' de Supabase
+      // (el correo vive en 'usuarios', no en 'pacientes').
+      final encontrado = await cuidadorPacienteService.buscarPacientePorEmail(email);
 
-      if (existeRelacion != null) {
-        _mostrarMensaje('Este paciente ya está vinculado a tu cuenta.');
-        setState(() {
-          _isLoading = false;
-        });
+      if (encontrado == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No se encontró ningún paciente registrado con ese correo."),
+            backgroundColor: Colors.red,
+          ),
+        );
         return;
       }
 
-      // Inserción en la tabla relacional
-      await _supabase.from('cuidador_paciente').insert({
-        'cuidador_id': idCuidador,
-        'paciente_id': idPaciente,
-      });
+      final String pacienteId = encontrado['paciente_id'];
+      final String nombrePaciente = encontrado['nombre'];
 
-      _mostrarMensaje('¡Paciente vinculado exitosamente!', esError: false);
+      await cuidadorPacienteService.asignarPaciente(pacienteId, cuidador.cuidadorId);
 
-      // Limpiar formulario y recargar la lista
-      _emailController.clear();
-      setState(() {
-        _pacienteEncontrado = null;
-      });
+      // recargamos la lista del cuidador para que el nuevo paciente
+      // quede disponible en el selector de Inicio/Calendario de inmediato.
+      await authService.recargarPacientesDelCuidador();
 
-      await _cargarPacientesVinculados();
-    } on PostgrestException catch (e) {
-      if (e.code == '23505') {
-        _mostrarMensaje('Este paciente ya se encuentra vinculado.');
-      } else {
-        _mostrarMensaje('Error de base de datos: ${e.message}');
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Vinculado con $nombrePaciente correctamente."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
     } catch (e) {
-      _mostrarMensaje('Error inesperado al vincular: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("No se pudo vincular: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          buscando = false;
+        });
+      }
     }
-  }
-
-  void _mostrarMensaje(String mensaje, {bool esError = true}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        backgroundColor: esError ? Colors.redAccent : Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F5F2),
       appBar: AppBar(
-        title: const Text('Vincular Paciente'),
+        backgroundColor: const Color(0xFFFFFBF5),
         elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Vincular paciente",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _cargarPacientesVinculados,
+      body: Center(
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // --- SECCIÓN: Búsqueda por Email ---
-              const Text(
-                'Ingresa el Correo del Paciente',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const Icon(Icons.person_search, size: 80),
+              const SizedBox(height: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 30),
+                child: Text(
+                  "Ingresa el correo con el que tu paciente se registró en la app.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Ej: paciente@correo.com',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isSearching ? null : _buscarPaciente,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isSearching
-                        ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                        : const Icon(Icons.search),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // --- SECCIÓN: Resultado de Búsqueda ---
-              if (_pacienteEncontrado != null) ...[
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 24,
-                          child: Icon(Icons.person),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _pacienteEncontrado!['nombre'] ?? 'Sin Nombre',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              if (_pacienteEncontrado!['email'] != null)
-                                Text(
-                                  _pacienteEncontrado!['email'].toString(),
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _vincularPaciente,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                          ),
-                          child: const Text('Vincular'),
-                        ),
-                      ],
-                    ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: 300,
+                child: TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: "Correo del paciente",
+                    hintText: "Ingrese el correo electrónico",
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
-                const SizedBox(height: 24),
-              ],
-
-              const Divider(height: 32),
-
-              // --- SECCIÓN: Pacientes Vinculados ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Pacientes Vinculados',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _cargarPacientesVinculados,
-                  ),
-                ],
               ),
-              const SizedBox(height: 8),
-
-              if (_isLoading && _pacientesVinculados.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (_pacientesVinculados.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Text(
-                      'No tienes pacientes vinculados actualmente.',
-                      style: TextStyle(color: Colors.grey),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: 300,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: buscando ? null : _buscarYVincular,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6D8B74),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _pacientesVinculados.length,
-                  itemBuilder: (context, index) {
-                    final paciente = _pacientesVinculados[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person_outline),
-                        ),
-                        title: Text(
-                          paciente['nombre'] ?? 'Paciente sin nombre',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(paciente['email'] ?? 'Sin correo'),
-                      ),
-                    );
-                  },
+                  child: buscando
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Buscar y vincular", style: TextStyle(fontSize: 18)),
                 ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
   }
 }
