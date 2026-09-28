@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/paciente.dart';
-import '../services/paciente_service.dart';
+import 'package:intl/intl.dart';
+import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/screens/detalle_actividad_screen.dart';
+import 'package:rutina_app/widgets/actividadCard.dart';
+import 'package:rutina_app/widgets/selector_paciente.dart';
+import 'package:rutina_app/utils/global.dart';
+import 'add_activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,174 +15,168 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final PacienteService _pacienteService = PacienteService();
-
-  bool _isLoading = true;
-  List<Paciente> _pacientes = [];
-  Paciente? _pacienteSeleccionado;
+  List<Actividad> _actividades = [];
+  bool _cargando = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _cargarDatosIniciales();
+    _cargarActividades();
   }
 
-  Future<void> _cargarDatosIniciales() async {
-    final String? userId = _supabase.auth.currentUser?.id;
+  // Trae las actividades del paciente seleccionado (el propio paciente,
+  // o el que el cuidador tenga elegido) ya combinadas con el progreso de hoy.
+  Future<void> _cargarActividades() async {
+    final pacienteId = authService.pacienteSeleccionado?.pacienteId;
 
-    if (userId == null) {
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+
+    if (pacienteId == null) {
       setState(() {
-        _isLoading = false;
+        _actividades = [];
+        _cargando = false;
       });
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Se utiliza el nombre correcto del método en PacienteService
-    final pacientesObtenidos = await _pacienteService.obtenerPacientesDeCuidador(userId);
-
-    setState(() {
-      _pacientes = pacientesObtenidos;
-      if (_pacientes.isNotEmpty) {
-        _pacienteSeleccionado = _pacientes.first;
-      } else {
-        _pacienteSeleccionado = null;
-      }
-      _isLoading = false;
-    });
+    try {
+      final actividades = await actividadService.obtenerActividadesConProgreso(
+        pacienteId,
+        DateTime.now(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _actividades = actividades;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = "No se pudieron cargar las actividades: $e";
+        _cargando = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inicio - RutinaApp'),
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        onRefresh: _cargarDatosIniciales,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- SELECTOR / INFORMACIÓN DEL PACIENTE ACTIVO ---
-              if (_pacienteSeleccionado != null) ...[
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 28,
-                          child: Icon(Icons.person, size: 30),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _pacienteSeleccionado!.nombre,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'ID: ${_pacienteSeleccionado!.id}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_pacientes.length > 1)
-                          DropdownButton<String>(
-                            underline: const SizedBox(),
-                            icon: const Icon(Icons.arrow_drop_down),
-                            value: _pacienteSeleccionado!.id,
-                            items: _pacientes.map((p) {
-                              return DropdownMenuItem<String>(
-                                value: p.id,
-                                child: Text(p.nombre),
-                              );
-                            }).toList(),
-                            onChanged: (nuevoId) {
-                              if (nuevoId != null) {
-                                setState(() {
-                                  _pacienteSeleccionado = _pacientes.firstWhere(
-                                        (element) => element.id == nuevoId,
-                                  );
-                                });
-                              }
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
+    final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());
 
-                // --- RESUMEN DE ACTIVIDADES / RUTINAS ---
-                const Text(
-                  'Rutina Diaria',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                // Tarjetas de actividades asociadas al paciente activo
-              ] else ...[
-                // --- ESTADO SIN PACIENTE VINCULADO ---
-                Card(
-                  color: Colors.orange.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 48,
-                          color: Colors.orange,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'No tienes ningún paciente vinculado',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Para ver las rutinas e información, ve a tu Perfil y vincula a un paciente mediante su identificador.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F5F2),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFFBF5),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "RutinaApp",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {},
+          ),
+        ],
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            const Text(
+              "Hoy",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            Text(
+              fechaHoy,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.black54,
+              ),
+            ),
+
+            // Solo aparece para cuidadores con más de un paciente.
+            SelectorPaciente(onCambio: _cargarActividades),
+
+            const SizedBox(height: 10),
+
+            if (_cargando)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              Expanded(
+                child: Center(
+                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                ),
+              )
+            else if (_actividades.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    "No hay actividades para hoy.",
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _actividades.length,
+                  itemBuilder: (context, index) {
+                    return ActividadCard(
+                      actividad: _actividades[index],
+                              fecha: DateTime.now(),
+
+                      onTap: () async {
+                        final actualizado = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetalleActividadScreen(
+                              actividad: _actividades[index],
+                              fecha: DateTime.now(),
+                            ),
+                          ),
+                        );
+
+                        if (actualizado == true) {
+                          _cargarActividades();
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final resultado = await Navigator.push(
+            context, MaterialPageRoute(
+              builder: (_) => const AddActivityScreen(),
+            ),
+          );
+          if (resultado == true) {
+            _cargarActividades();
+          }
+        },
+        child: const Icon(Icons.add_task),
       ),
     );
   }
