@@ -29,26 +29,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   Future<List<dynamic>> _obtenerVinculados() async {
-    final String? uidActual = Supabase.instance.client.auth.currentUser?.id;
-    if (uidActual == null) return [];
-
     if (authService.cuidadorActual != null) {
-      try {
-        final pacientesVinculados = await authService.cuidadorPacienteService
-            .obtenerPacientesVinculados(uidActual);
-        
-        return pacientesVinculados.map((item) {
-          final pacienteMap = item['paciente'] as Map<String, dynamic>? ?? {};
-          final usuariosMap = pacienteMap['usuarios'] as Map<String, dynamic>? ?? {};
-          return {
-            'nombre': usuariosMap['nombre'] ?? 'Sin nombre',
-            'email': usuariosMap['email'] ?? 'Sin correo',
-          };
-        }).toList();
-      } catch (e) {
-        return await authService.cuidadorPacienteService
-            .obtenerPacientesDeCuidador(authService.cuidadorActual!.cuidadorId);
-      }
+      // authService.pacientesDelCuidador ya está cargado (con el id
+      // correcto, cuidadorId) desde que se inició sesión o se recargó
+      // tras vincular un paciente nuevo — no hace falta volver a pedirlo.
+      return authService.pacientesDelCuidador;
     } else if (authService.pacienteActual != null) {
       return await authService.cuidadorPacienteService
           .obtenerCuidadoresDePaciente(authService.pacienteActual!.pacienteId);
