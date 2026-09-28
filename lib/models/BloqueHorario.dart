@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:rutina_app/models/actividad.dart';
 
 class BloqueHorario {

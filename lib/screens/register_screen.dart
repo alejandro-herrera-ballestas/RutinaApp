@@ -1,3 +1,5 @@
+// ignore_for_file: camel_case_types
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rutina_app/services/auth_service.dart';

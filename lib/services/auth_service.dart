@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/models/paciente.dart';
 import 'package:rutina_app/models/horario.dart';
