@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:rutina_app/screens/login_screen.dart';
 import 'package:rutina_app/screens/vincular_paciente_screen.dart';
 import 'package:rutina_app/utils/global.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});

@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
 
-class ActividadCard extends StatelessWidget {
+class actividadCard extends StatelessWidget {
   final Actividad actividad;
   final VoidCallback onTap;
 
-  const ActividadCard({
+  const actividadCard({
     super.key,
     required this.actividad,
     required this.onTap,

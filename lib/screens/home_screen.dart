@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/screens/detalle_actividad_screen.dart';
-import 'package:rutina_app/widgets/actividadCard.dart';
+import 'package:rutina_app/widgets/actividad_card.dart';
 import 'package:rutina_app/widgets/selector_paciente.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'add_activity_screen.dart';
@@ -139,11 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListView.builder(
                   itemCount: _actividades.length,
                   itemBuilder: (context, index) {
-                    return ActividadCard(
+                    return actividadCard(
                       actividad: _actividades[index],
-                              fecha: DateTime.now(),
-
-                      onTap: () async {
+                          onTap: () async {
                         final actualizado = await Navigator.push(
                           context,
                           MaterialPageRoute(
