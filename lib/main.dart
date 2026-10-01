@@ -15,7 +15,7 @@ void main() async {
   await initializeDateFormatting('es_ES', null);
 
   // NUEVO: prepara las notificaciones locales (zona horaria + canal).
-  // await notificationService.init();
+  await notificationService.init();
 
   runApp(const MyApp());
 }
