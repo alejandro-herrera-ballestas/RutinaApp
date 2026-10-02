@@ -1,12 +1,30 @@
-import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/BloqueHorario.dart';
+import 'package:rutina_app/services/storage_service.dart';
+import 'package:rutina_app/widgets/imagen_storage.dart';
 import 'package:rutina_app/widgets/selector_paciente.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'package:rutina_app/screens/detalle_actividad_screen.dart';
+
+// Una actividad ya "colocada" en el calendario: dónde empieza, cuánto mide
+// y en qué columna va cuando varias tarjetas quedarían una encima de otra.
+class _Posicionada {
+  final BloqueHorario bloque;
+  final double top;
+  final double altura;
+  int columna = 0;
+  int totalColumnas = 1;
+
+  _Posicionada({
+    required this.bloque,
+    required this.top,
+    required this.altura,
+  });
+}
 
 class CalendarioScreen extends StatefulWidget {
   const CalendarioScreen({super.key});
@@ -26,6 +44,11 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
   // Altura aproximada de cada hora en el calendario.
   static const double _altoPorHora = 80;
+
+  // Altura MÍNIMA de una tarjeta para que se pueda leer (nombre + hora).
+  // Antes se forzaba entre 70 y 150, y una actividad de 5 minutos ocupaba
+  // casi una hora y tapaba a la siguiente.
+  static const double _alturaMinima = 56;
 
   // El calendario ahora muestra las 24 horas del día.
   static const int _horaInicial = 0;
@@ -176,11 +199,102 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     }
   }
 
+  // ============================================================
+  // POSICIONAMIENTO (aquí está la corrección de las actividades perdidas)
+  // ============================================================
+
+  // Calcula arriba/altura de cada actividad y la reparte en columnas cuando
+  // dos tarjetas quedarían tapándose (por ejemplo una de 5 min a las 8:00 y
+  // otra a las 8:10: cada una necesita al menos _alturaMinima para leerse).
+  List<_Posicionada> _calcularPosiciones(List<BloqueHorario> bloques) {
+    final List<_Posicionada> items = [];
+
+    for (final bloque in bloques) {
+      final double minutosDesdeInicio =
+          (bloque.horaInicio.hour * 60 +
+              bloque.horaInicio.minute -
+              _horaInicial * 60)
+              .toDouble();
+
+      final double duracionMinutos =
+          bloque.calcularDuracion().inMinutes.toDouble();
+
+      final double top = (minutosDesdeInicio / 60) * _altoPorHora;
+
+      // Altura REAL según la duración, con un mínimo para poder leerla.
+      // Ya no hay máximo: una actividad de 1 hora mide una hora.
+      final double altura = math.max(
+        (duracionMinutos / 60) * _altoPorHora,
+        _alturaMinima,
+      );
+
+      items.add(_Posicionada(bloque: bloque, top: top, altura: altura));
+    }
+
+    items.sort((a, b) => a.top.compareTo(b.top));
+
+    // Agrupamos las tarjetas que se tocan o se tapan ("grupos") y dentro de
+    // cada grupo asignamos columnas.
+    final List<_Posicionada> resultado = [];
+    List<_Posicionada> grupo = [];
+    double finDelGrupo = -1;
+
+    void cerrarGrupo() {
+      final List<double> finDeCadaColumna = [];
+
+      for (final item in grupo) {
+        int columna = -1;
+
+        for (int c = 0; c < finDeCadaColumna.length; c++) {
+          if (finDeCadaColumna[c] <= item.top) {
+            columna = c;
+            break;
+          }
+        }
+
+        if (columna == -1) {
+          finDeCadaColumna.add(item.top + item.altura);
+          columna = finDeCadaColumna.length - 1;
+        } else {
+          finDeCadaColumna[columna] = item.top + item.altura;
+        }
+
+        item.columna = columna;
+      }
+
+      for (final item in grupo) {
+        item.totalColumnas = finDeCadaColumna.length;
+      }
+
+      resultado.addAll(grupo);
+      grupo = [];
+      finDelGrupo = -1;
+    }
+
+    for (final item in items) {
+      if (grupo.isNotEmpty && item.top >= finDelGrupo) {
+        cerrarGrupo();
+      }
+
+      grupo.add(item);
+      finDelGrupo = math.max(finDelGrupo, item.top + item.altura);
+    }
+
+    if (grupo.isNotEmpty) {
+      cerrarGrupo();
+    }
+
+    return resultado;
+  }
+
   // CONSTRUIR TARJETA DE ACTIVIDAD
+  // 'compacta' = tarjeta angosta (varias en paralelo) o baja: se oculta la
+  // imagen y la flecha para que el nombre y la hora sigan visibles.
   Widget _crearTarjetaActividad(
       BuildContext context,
-      BloqueHorario bloque,
-      ) {
+      BloqueHorario bloque, {
+      required bool compacta,
+      }) {
     final actividad = bloque.actividad;
 
     final String horaInicio =
@@ -227,46 +341,32 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
           child: Row(
             children: [
-              // IMAGEN
-              SizedBox(
-                width: 65,
-                height: double.infinity,
-
-                child: actividad.rutaIMG.isNotEmpty
-                    ? Image.file(
-                  File(actividad.rutaIMG),
-                  fit: BoxFit.cover,
-
-                  errorBuilder: (
-                      context,
-                      error,
-                      stackTrace,
-                      ) {
-                    return Container(
+              // IMAGEN (solo en tarjetas normales)
+              if (!compacta)
+                SizedBox(
+                  width: 65,
+                  height: double.infinity,
+                  child: ImagenStorage(
+                    bucket: StorageService.bucketActividades,
+                    ruta: actividad.rutaIMG,
+                    width: 65,
+                    height: double.infinity,
+                    placeholder: Container(
                       color: Colors.grey.shade200,
                       child: const Icon(
-                        Icons.image_not_supported_outlined,
+                        Icons.image_outlined,
                         color: Colors.grey,
                       ),
-                    );
-                  },
-                )
-
-                    : Container(
-                  color: Colors.grey.shade200,
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: Colors.grey,
+                    ),
                   ),
                 ),
-              ),
 
               // INFORMACIÓN
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compacta ? 8 : 10,
+                    vertical: 6,
                   ),
 
                   child: Column(
@@ -282,7 +382,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                         overflow: TextOverflow.ellipsis,
 
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: compacta ? 12 : 14,
                           fontWeight: FontWeight.bold,
 
                           color: actividad.completada
@@ -291,10 +391,12 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
 
                       Text(
-                        '$horaInicio - $horaFin · $minutos min',
+                        compacta
+                            ? horaInicio
+                            : '$horaInicio - $horaFin · $minutos min',
 
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -311,20 +413,22 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
               // ESTADO
               Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: 6),
 
                 child: actividad.completada
-                    ? const Icon(
+                    ? Icon(
                   Icons.check_circle,
                   color: Colors.green,
-                  size: 20,
+                  size: compacta ? 16 : 20,
                 )
 
+                    : (compacta
+                    ? const SizedBox.shrink()
                     : const Icon(
                   Icons.chevron_right,
                   color: Colors.black45,
                   size: 20,
-                ),
+                )),
               ),
             ],
           ),
@@ -343,8 +447,9 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
           (a, b) => a.horaInicio.compareTo(b.horaInicio),
     );
 
+    // Corregido: se cuentan las 24 horas completas (0 a 23 inclusive).
     final double alturaTotal =
-        ((_horaFinal - _horaInicial) * _altoPorHora) + 40;
+        ((_horaFinal - _horaInicial + 1) * _altoPorHora) + 40;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(
@@ -357,70 +462,76 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       child: SizedBox(
         height: alturaTotal,
 
-        child: Stack(
-          clipBehavior: Clip.none,
+        // LayoutBuilder da el ancho disponible para repartir las columnas
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 70 de margen izquierdo (horas) + 4 de margen derecho
+            final double anchoUtil = constraints.maxWidth - 74;
+            final List<_Posicionada> posiciones = _calcularPosiciones(bloques);
 
-          children: [
-            // LÍNEA VERTICAL
-            Positioned(
-              left: 57,
-              top: 0,
-              bottom: 20,
+            return Stack(
+              clipBehavior: Clip.none,
 
-              child: Container(
-                width: 1,
-                color: Colors.grey.shade300,
-              ),
-            ),
+              children: [
+                // LÍNEA VERTICAL
+                Positioned(
+                  left: 57,
+                  top: 0,
+                  bottom: 20,
 
-            // HORAS
-            for (int hora = _horaInicial;
-            hora <= _horaFinal;
-            hora++)
-
-              Positioned(
-                top: (hora - _horaInicial) * _altoPorHora - 7,
-                left: 0,
-                width: 48,
-
-                child: Text(
-                  '${hora.toString().padLeft(2, '0')}:00',
-
-                  textAlign: TextAlign.right,
-
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
+                  child: Container(
+                    width: 1,
+                    color: Colors.grey.shade300,
                   ),
                 ),
-              ),
-            // LÍNEAS HORIZONTALES
-            for (int hora = _horaInicial;
-            hora <= _horaFinal;
-            hora++)
 
-              Positioned(
-                top: (hora - _horaInicial) * _altoPorHora,
-                left: 65,
-                right: 0,
+                // HORAS
+                for (int hora = _horaInicial;
+                hora <= _horaFinal;
+                hora++)
 
-                child: Container(
-                  height: 1,
-                  color: Colors.grey.shade200,
-                ),
-              ),
+                  Positioned(
+                    top: (hora - _horaInicial) * _altoPorHora - 7,
+                    left: 0,
+                    width: 48,
 
-            // ACTIVIDADES
-            for (final bloque in bloques)
-              _crearPosicionActividad(
-                bloque,
-                _horaInicial,
-              ),
+                    child: Text(
+                      '${hora.toString().padLeft(2, '0')}:00',
 
-            // LÍNEA DE HORA ACTUAL
-            if (_esHoy())
-              _crearLineaHoraActual(_horaInicial),
-          ],
+                      textAlign: TextAlign.right,
+
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                // LÍNEAS HORIZONTALES
+                for (int hora = _horaInicial;
+                hora <= _horaFinal;
+                hora++)
+
+                  Positioned(
+                    top: (hora - _horaInicial) * _altoPorHora,
+                    left: 65,
+                    right: 0,
+
+                    child: Container(
+                      height: 1,
+                      color: Colors.grey.shade200,
+                    ),
+                  ),
+
+                // ACTIVIDADES
+                for (final posicion in posiciones)
+                  _crearPosicionActividad(posicion, anchoUtil),
+
+                // LÍNEA DE HORA ACTUAL
+                if (_esHoy())
+                  _crearLineaHoraActual(_horaInicial),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -428,33 +539,27 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
   // POSICIÓN DE UNA ACTIVIDAD
   Widget _crearPosicionActividad(
-      BloqueHorario bloque,
-      int horaInicial,
+      _Posicionada posicion,
+      double anchoUtil,
       ) {
-    final double minutosDesdeInicio =
-        bloque.horaInicio.hour * 60 +
-            bloque.horaInicio.minute -
-            horaInicial * 60;
+    final double anchoColumna = anchoUtil / posicion.totalColumnas;
 
-    final double duracionMinutos =
-    bloque.calcularDuracion().inMinutes.toDouble();
+    // Pequeño espacio entre columnas cuando hay varias lado a lado
+    final double separacion = posicion.totalColumnas > 1 ? 3 : 0;
 
-    final double top =
-        (minutosDesdeInicio / 60) * _altoPorHora;
-
-    final double altura =
-    ((duracionMinutos / 60) * _altoPorHora)
-        .clamp(70.0, 150.0);
+    final bool compacta =
+        posicion.totalColumnas > 1 || posicion.altura < 64;
 
     return Positioned(
-      top: top,
-      left: 70,
-      right: 4,
-      height: altura,
+      top: posicion.top,
+      left: 70 + posicion.columna * anchoColumna,
+      width: anchoColumna - separacion,
+      height: posicion.altura,
 
       child: _crearTarjetaActividad(
         context,
-        bloque,
+        posicion.bloque,
+        compacta: compacta,
       ),
     );
   }
@@ -469,7 +574,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             horaInicial * 60;
 
     if (minutosDesdeInicio < 0 ||
-        minutosDesdeInicio > (_horaFinal - horaInicial) * 60) {
+        minutosDesdeInicio > (_horaFinal - horaInicial + 1) * 60) {
       return const SizedBox.shrink();
     }
     final double top =
@@ -606,7 +711,8 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             // Solo aparece para cuidadores con más de un paciente.
             SelectorPaciente(onCambio: _cargarActividades),
 
-            // CONFLICTOS
+            // CONFLICTOS (con el bloqueo de la base de datos ya no deberían
+            // aparecer; se deja como red de seguridad)
             if (_conflictivas.isNotEmpty)
               Container(
                 width: double.infinity,

@@ -1,8 +1,14 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rutina_app/models/actividad.dart';
-import 'dart:io';
+import 'package:rutina_app/services/actividad_service.dart';
+import 'package:rutina_app/services/storage_service.dart';
 import 'package:rutina_app/utils/global.dart';
+import 'package:rutina_app/widgets/imagen_storage.dart';
+import 'package:rutina_app/widgets/selector_dias.dart';
 
 class DetalleActividadScreen extends StatefulWidget {
   final Actividad actividad;
@@ -28,8 +34,15 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
   final ImagePicker _picker = ImagePicker();
   TimeOfDay? _horaSeleccionada;
-  File? _imagenSeleccionada;
+
+  // Solo se llena si el usuario ELIGE una imagen nueva. Mientras sea null se
+  // muestra la imagen actual, que vive en Storage (widget.actividad.rutaIMG).
+  File? _imagenNueva;
+
   Duration _duracionSeleccionada = const Duration(minutes: 15);
+
+  // NUEVO: días de la semana en que se repite
+  List<int> _diasSeleccionados = [];
 
   bool _procesando = false; // evita doble tap mientras se guarda/elimina/completa
 
@@ -46,10 +59,21 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     horaActividadController.text = '$horas:$minutos';
 
     _duracionSeleccionada = widget.actividad.duracion;
+    _diasSeleccionados = List<int>.from(widget.actividad.diasSemana);
+  }
 
-    if (widget.actividad.rutaIMG.isNotEmpty) {
-      _imagenSeleccionada = File(widget.actividad.rutaIMG);
+  void _mostrarMensaje(String texto, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), backgroundColor: color),
+    );
+  }
+
+  // Id del paciente dueño de la actividad
+  String? _pacienteId() {
+    if (widget.actividad.pacienteId.isNotEmpty) {
+      return widget.actividad.pacienteId;
     }
+    return authService.pacienteSeleccionado?.pacienteId;
   }
 
   // ============================ Selección de hora (TimePicker) ============================
@@ -103,17 +127,19 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     });
 
     try {
-      await actividadService.eliminarActividadSupabase(widget.actividad.id);
+      await actividadService.eliminarActividadSupabase(
+        widget.actividad.id,
+        rutaImagen: widget.actividad.rutaIMG,
+      );
+
+      // Quita los avisos de la actividad borrada
+      unawaited(notificationService.sincronizar());
+
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No se pudo eliminar la actividad: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("No se pudo eliminar la actividad: $e", Colors.red);
     } finally {
       if (mounted) {
         setState(() {
@@ -139,10 +165,12 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   final XFile? imagen = await _picker.pickImage(
                     source: ImageSource.camera,
                     imageQuality: 80,
+                    maxWidth: 1280,
+                    maxHeight: 1280,
                   );
                   if (imagen == null) return;
                   setState(() {
-                    _imagenSeleccionada = File(imagen.path);
+                    _imagenNueva = File(imagen.path);
                   });
                 },
               ),
@@ -154,10 +182,12 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   final XFile? imagen = await _picker.pickImage(
                     source: ImageSource.gallery,
                     imageQuality: 80,
+                    maxWidth: 1280,
+                    maxHeight: 1280,
                   );
                   if (imagen == null) return;
                   setState(() {
-                    _imagenSeleccionada = File(imagen.path);
+                    _imagenNueva = File(imagen.path);
                   });
                 },
               ),
@@ -170,26 +200,37 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
   // ============================ Guardar cambios ============================
   Future<void> _guardarCambios() async {
+    if (_procesando) return;
+
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
 
     if (nombre.isEmpty || _horaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Debe ingresar el nombre y la hora."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("Debe ingresar el nombre y la hora.", Colors.red);
       return;
     }
 
+    if (_diasSeleccionados.isEmpty) {
+      _mostrarMensaje("Elige al menos un día de la semana.", Colors.red);
+      return;
+    }
+
+    final pacienteId = _pacienteId();
+    if (pacienteId == null) {
+      _mostrarMensaje("No se pudo saber a qué paciente pertenece la actividad.", Colors.red);
+      return;
+    }
+
+    // Si no se eligió imagen nueva, se conserva la ruta actual de Storage
     final actividadEditada = Actividad(
       id: widget.actividad.id,
+      pacienteId: pacienteId,
       nombre: nombre,
       descripcion: descripcion,
-      rutaIMG: _imagenSeleccionada?.path ?? widget.actividad.rutaIMG,
+      rutaIMG: widget.actividad.rutaIMG,
       hora: _horaSeleccionada!,
       duracion: _duracionSeleccionada,
+      diasSemana: _diasSeleccionados,
     );
 
     setState(() {
@@ -197,23 +238,25 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     });
 
     try {
-      await actividadService.actualizarActividad(actividadEditada);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Actividad actualizada correctamente."),
-          backgroundColor: Colors.green,
-        ),
+      await actividadService.actualizarActividad(
+        actividadEditada,
+        pacienteId: pacienteId,
+        imagenNueva: _imagenNueva,
       );
+
+      // La hora o los días pudieron cambiar: se reprograman los avisos
+      unawaited(notificationService.sincronizar());
+
+      if (!mounted) return;
+      _mostrarMensaje("Actividad actualizada correctamente.", Colors.green);
       Navigator.pop(context, true);
+    } on SolapeActividadException catch (e) {
+      // La base de datos bloqueó el cambio porque se cruza con otra actividad
+      if (!mounted) return;
+      _mostrarMensaje(e.toString(), Colors.orange.shade800);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No se pudo actualizar la actividad: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("No se pudo actualizar la actividad: $e", Colors.red);
     } finally {
       if (mounted) {
         setState(() {
@@ -242,12 +285,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No se pudo marcar como completada: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("No se pudo marcar como completada: $e", Colors.red);
     } finally {
       if (mounted) {
         setState(() {
@@ -257,24 +295,34 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     }
   }
 
-  // Widget auxiliar: muestra la imagen elegida, o el placeholder si no hay ninguna
+  // Widget auxiliar: muestra la imagen nueva elegida, o la actual de Storage,
+  // o el placeholder si no hay ninguna
   Widget _buildImagenPreview() {
-    if (_imagenSeleccionada != null) {
+    if (_imagenNueva != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.file(
-          _imagenSeleccionada!,
+          _imagenNueva!,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
           errorBuilder: (context, error, stackTrace) {
-            // Si el archivo ya no existe en el dispositivo, mostramos el placeholder
             return _buildPlaceholder();
           },
         ),
       );
     }
-    return _buildPlaceholder();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: ImagenStorage(
+        bucket: StorageService.bucketActividades,
+        ruta: widget.actividad.rutaIMG,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: Center(child: _buildPlaceholder()),
+      ),
+    );
   }
 
   Widget _buildPlaceholder() {
@@ -393,8 +441,6 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
-
                   const SizedBox(height: 20),
 
                   // ------------------ Duración de la actividad ------------------
@@ -419,6 +465,20 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                       });
                     },
                   ),
+
+                  const SizedBox(height: 20),
+
+                  // ------------------ NUEVO: días en que se repite ------------------
+                  SelectorDias(
+                    seleccionados: _diasSeleccionados,
+                    onCambio: (nuevos) {
+                      setState(() {
+                        _diasSeleccionados = nuevos;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 40),
 
                   // ------------------ Botón principal de guardar ------------------
                   ElevatedButton.icon(
