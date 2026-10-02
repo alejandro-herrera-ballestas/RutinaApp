@@ -29,6 +29,9 @@ class ProgresoActividadService {
     }
   }
 
+  // Guarda el progreso de UNA actividad en UN día con una sola llamada
+  // (upsert). Ya existe un índice único (actividad_id, fecha), así que
+  // no hace falta consultar antes: si existe lo actualiza, si no lo crea.
   Future<void> marcarProgreso(
     String actividadId,
     DateTime fecha,
@@ -37,28 +40,18 @@ class ProgresoActividadService {
     try {
       final fechaStr = fecha.toIso8601String().split('T')[0];
 
-      final existente = await supabase
-          .from('progreso_actividad')
-          .select('id')
-          .eq('actividad_id', actividadId)
-          .eq('fecha', fechaStr)
-          .maybeSingle();
-
-      final datos = {
-        'actividad_id': actividadId,
-        'fecha': fechaStr,
-        'completada': completada,
-        'hora_completada': completada ? DateTime.now().toIso8601String() : null,
-      };
-
-      if (existente == null) {
-        await supabase.from('progreso_actividad').insert(datos);
-      } else {
-        await supabase
-            .from('progreso_actividad')
-            .update(datos)
-            .eq('id', existente['id']);
-      }
+      await supabase.from('progreso_actividad').upsert(
+        {
+          'actividad_id': actividadId,
+          'fecha': fechaStr,
+          'completada': completada,
+          // toUtc() es importante: sin zona horaria la hora se guardaría
+          // corrida (en Colombia, 5 horas).
+          'hora_completada':
+              completada ? DateTime.now().toUtc().toIso8601String() : null,
+        },
+        onConflict: 'actividad_id,fecha',
+      );
     } catch (e) {
       throw Exception('Error al actualizar el progreso: $e');
     }
