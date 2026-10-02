@@ -1,8 +1,9 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
+
 import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/models/paciente.dart';
-import 'package:rutina_app/models/horario.dart';
 import 'package:rutina_app/models/usuario.dart';
 import 'package:rutina_app/services/cuidador_service.dart';
 import 'package:rutina_app/services/paciente_service.dart';
@@ -35,14 +36,34 @@ class AuthService {
 
   Future<void> recargarPacientesDelCuidador() async {
     if (_cuidadorActual == null) return;
+
+    final String? idSeleccionado = pacienteSeleccionado?.pacienteId;
+
     pacientesDelCuidador = await cuidadorPacienteService
         .obtenerPacientesDeCuidador(_cuidadorActual!.cuidadorId);
 
-    if (pacienteSeleccionado == null ||
-        !pacientesDelCuidador.any((p) => p.pacienteId == pacienteSeleccionado!.pacienteId)) {
-      pacienteSeleccionado = pacientesDelCuidador.isNotEmpty ? pacientesDelCuidador.first : null;
+    if (pacientesDelCuidador.isEmpty) {
+      pacienteSeleccionado = null;
+      return;
     }
+
+    // Buscamos al paciente que estaba seleccionado dentro de la lista NUEVA.
+    // Antes se dejaba el objeto viejo, y el Dropdown del selector fallaba
+    // porque ya no era el mismo objeto que está en la lista recargada.
+    Paciente? coincidencia;
+    for (final paciente in pacientesDelCuidador) {
+      if (paciente.pacienteId == idSeleccionado) {
+        coincidencia = paciente;
+        break;
+      }
+    }
+
+    pacienteSeleccionado = coincidencia ?? pacientesDelCuidador.first;
   }
+
+  // Registro en 3 pasos: 1) crear la cuenta en Auth, 2) crear el perfil con
+  // la función 'registrar_perfil' (usuarios + pacientes/cuidadores en UNA
+  // sola transacción), 3) cargar el perfil recién creado.
   Future<void> registrarUsuario({
     required String email,
     required String contrasena,
@@ -61,39 +82,34 @@ class AuthService {
       throw Exception('No se pudo crear la cuenta.');
     }
 
+    // Sin sesión no hay auth.uid() y las políticas RLS rechazan todo.
+    // Pasa si "Confirm email" está activado en Supabase.
+    if (authResponse.session == null) {
+      throw Exception(
+        'La cuenta se creó pero necesita confirmar el correo antes de continuar.',
+      );
+    }
+
     try {
+      await supabase.rpc('registrar_perfil', params: {
+        'p_rol': rol == RolUsuario.cuidador ? 'cuidador' : 'paciente',
+        'p_nombre': nombre.trim(),
+        'p_fecha_nacimiento': fechaNacimiento.toIso8601String().split('T')[0],
+        'p_telefono': telefono,
+      });
+
       if (rol == RolUsuario.cuidador) {
-        final cuidador = Cuidador(
-          id: authUser.id,
-          cuidadorId: '',
-          nombre: nombre,
-          email: email,
-          fechaNacimiento: fechaNacimiento,
-          fotoPerfil: '',
-          telefono: telefono ?? '',
-          pacientes: [],
-        );
-        await cuidadorService.crearCuidador(cuidador);
         _cuidadorActual = await cuidadorService.obtenerCuidadorPorUsuarioId(authUser.id);
         _pacienteActual = null;
         pacientesDelCuidador = [];
         pacienteSeleccionado = null;
       } else {
-        final paciente = Paciente(
-          id: authUser.id,
-          pacienteId: '',
-          nombre: nombre,
-          email: email,
-          fechaNacimiento: fechaNacimiento,
-          fotoPerfil: '',
-          horario: Horario(bloques: []),
-        );
-        await pacienteService.crearPaciente(paciente);
-
         _pacienteActual = await pacienteService.obtenerPacientePorUsuarioId(authUser.id);
         _cuidadorActual = null;
         pacienteSeleccionado = _pacienteActual;
       }
+
+      unawaited(notificationService.activarParaSesion());
     } catch (e) {
       await supabase.auth.signOut();
       rethrow;
@@ -115,6 +131,7 @@ class AuthService {
         _cuidadorActual = cuidador;
         _pacienteActual = null;
         await recargarPacientesDelCuidador();
+        unawaited(notificationService.activarParaSesion());
         return true;
       }
 
@@ -123,6 +140,7 @@ class AuthService {
         _pacienteActual = paciente;
         _cuidadorActual = null;
         pacienteSeleccionado = paciente; // un paciente siempre "ve" sus propias actividades
+        unawaited(notificationService.activarParaSesion());
         return true;
       }
 
@@ -135,6 +153,10 @@ class AuthService {
   }
 
   Future<void> cerrarSesion() async {
+    // Se cancelan los avisos para que el celular no suene con las
+    // actividades de una sesión que ya se cerró.
+    await notificationService.cancelarTodas();
+
     await supabase.auth.signOut();
     _cuidadorActual = null;
     _pacienteActual = null;
