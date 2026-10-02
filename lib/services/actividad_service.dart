@@ -1,7 +1,26 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/services/progreso_actividad_service.dart';
+import 'package:rutina_app/services/storage_service.dart';
 import 'package:rutina_app/utils/global.dart';
+
+// Error que lanza la base de datos cuando una actividad se cruza en horario
+// con otra del mismo paciente (en alguno de los mismos días).
+class SolapeActividadException implements Exception {
+  final String conflicto; // nombre de la actividad con la que se cruza
+
+  SolapeActividadException(this.conflicto);
+
+  @override
+  String toString() {
+    return 'Esta actividad se cruza con "$conflicto". '
+        'Cambia la hora, la duración o los días.';
+  }
+}
 
 class ActividadService {
   final List<Actividad> _actividades = [];
@@ -11,43 +30,81 @@ class ActividadService {
   // SUPABASE
   // ============================================================
 
+  // Convierte el error de Postgres en uno entendible para la pantalla.
+  // El código 23P01 lo lanza el trigger que bloquea los solapes.
+  Exception _traducirError(Object e, String mensaje) {
+    if (e is PostgrestException && e.code == '23P01') {
+      final coincidencia = RegExp(r'"(.*)"').firstMatch(e.message);
+      return SolapeActividadException(coincidencia?.group(1) ?? 'otra actividad');
+    }
+    return Exception('$mensaje: $e');
+  }
+
   // Trae las actividades de un paciente YA combinadas con su progreso
-  // del día indicado (completada / hora en que se completó).
+  // del día indicado. Solo devuelve las que ocurren ese día de la semana.
   // Esto es lo que deben usar home_screen y calendario_screen.
   Future<List<Actividad>> obtenerActividadesConProgreso(
-      String pacienteId,
-      DateTime fecha,
-      ) async {
-    final actividades = await obtenerActividadesPaciente(pacienteId);
+    String pacienteId,
+    DateTime fecha,
+  ) async {
+    final todas = await obtenerActividadesPaciente(pacienteId);
+
+    // Nos quedamos solo con las que se repiten en el día de la semana pedido
+    final List<Actividad> delDia = [];
+    for (final actividad in todas) {
+      if (actividad.ocurreEn(fecha)) {
+        delDia.add(actividad);
+      }
+    }
+
+    final List<String> ids = [];
+    for (final actividad in delDia) {
+      ids.add(actividad.id);
+    }
 
     final progresoPorActividad = await progresoService.obtenerProgresoDelDia(
-      actividades.map((a) => a.id).toList(),
+      ids,
       fecha,
     );
 
-    for (final actividad in actividades) {
+    for (final actividad in delDia) {
       final progreso = progresoPorActividad[actividad.id];
       actividad.completada = progreso?.completada ?? false;
       actividad.fechaCompletada = progreso?.horaCompletada;
     }
 
-    return actividades;
+    return delDia;
   }
 
-  // Crear una actividad para un paciente
+  // Crear una actividad para un paciente. Si viene una imagen nueva, se
+  // sube primero a Storage y la ruta queda guardada en la actividad.
+  // Lanza SolapeActividadException si se cruza con otra actividad.
   Future<void> crearActividad(
-      Actividad actividad,
-      String pacienteId,
-      ) async {
+    Actividad actividad,
+    String pacienteId, {
+    File? imagen,
+  }) async {
+    String? rutaSubida;
+
     try {
-      await supabase
-          .from('actividades')
-          .insert({
+      if (imagen != null) {
+        rutaSubida = await storageService.subirImagen(
+          bucket: StorageService.bucketActividades,
+          carpeta: pacienteId,
+          nombreBase: const Uuid().v4(),
+          archivo: imagen,
+        );
+        actividad.rutaIMG = rutaSubida;
+      }
+
+      await supabase.from('actividades').insert({
         'paciente_id': pacienteId,
         ...actividad.toMap(),
       });
     } catch (e) {
-      throw Exception('Error al crear actividad: $e');
+      // Si la actividad no se pudo guardar, no dejamos la imagen huérfana
+      await storageService.borrar(StorageService.bucketActividades, rutaSubida);
+      throw _traducirError(e, 'Error al crear actividad');
     }
   }
 
@@ -66,19 +123,23 @@ class ActividadService {
     }
   }
 
-  // Obtener todas las actividades de un paciente
+  // Obtener TODAS las actividades de un paciente (de cualquier día),
+  // ordenadas por hora. Las usa también el servicio de notificaciones.
   Future<List<Actividad>> obtenerActividadesPaciente(
-      String pacienteId,
-      ) async {
+    String pacienteId,
+  ) async {
     try {
       final response = await supabase
           .from('actividades')
           .select()
-          .eq('paciente_id', pacienteId);
+          .eq('paciente_id', pacienteId)
+          .order('hora_inicio', ascending: true);
 
-      return response
-          .map((actividad) => Actividad.fromMap(actividad))
-          .toList();
+      final List<Actividad> actividades = [];
+      for (final fila in response) {
+        actividades.add(Actividad.fromMap(fila));
+      }
+      return actividades;
     } catch (e) {
       throw Exception(
         'Error al obtener actividades del paciente: $e',
@@ -86,29 +147,53 @@ class ActividadService {
     }
   }
 
-  // Actualizar una actividad en Supabase
+  // Actualizar una actividad en Supabase. Si se elige una imagen nueva
+  // se sube, y recién cuando la actividad se guarda bien se borra la vieja.
+  // Lanza SolapeActividadException si se cruza con otra actividad.
   Future<void> actualizarActividad(
-      Actividad actividad,
-      ) async {
+    Actividad actividad, {
+    required String pacienteId,
+    File? imagenNueva,
+  }) async {
+    final String rutaAnterior = actividad.rutaIMG;
+    String? rutaSubida;
+
     try {
+      if (imagenNueva != null) {
+        rutaSubida = await storageService.subirImagen(
+          bucket: StorageService.bucketActividades,
+          carpeta: pacienteId,
+          nombreBase: const Uuid().v4(),
+          archivo: imagenNueva,
+        );
+        actividad.rutaIMG = rutaSubida;
+      }
+
       await supabase
           .from('actividades')
           .update(actividad.toMap())
           .eq('id', actividad.id);
+
+      if (rutaSubida != null) {
+        await storageService.borrar(StorageService.bucketActividades, rutaAnterior);
+      }
     } catch (e) {
-      throw Exception(
-        'Error al actualizar actividad: $e',
-      );
+      // Volvemos a dejar la ruta como estaba y borramos la imagen subida
+      actividad.rutaIMG = rutaAnterior;
+      await storageService.borrar(StorageService.bucketActividades, rutaSubida);
+      throw _traducirError(e, 'Error al actualizar actividad');
     }
   }
 
-  // Eliminar una actividad de Supabase
-  Future<void> eliminarActividadSupabase(String id) async {
+  // Eliminar una actividad de Supabase (y su imagen de Storage)
+  Future<void> eliminarActividadSupabase(String id, {String? rutaImagen}) async {
     try {
       await supabase
           .from('actividades')
           .delete()
           .eq('id', id);
+
+      await storageService.borrar(StorageService.bucketActividades, rutaImagen);
     } catch (e) {
       throw Exception(
         'Error al eliminar actividad: $e',
@@ -151,13 +236,14 @@ class ActividadService {
 
   // Editar una actividad local
   bool editarActividad(
-      String id, {
-        String? nombre,
-        String? descripcion,
-        String? rutaIMG,
-        TimeOfDay? hora,
-        Duration? duracion,
-      }) {
+    String id, {
+    String? nombre,
+    String? descripcion,
+    String? rutaIMG,
+    TimeOfDay? hora,
+    Duration? duracion,
+    List<int>? dias,
+  }) {
     Actividad? actividad = buscarActividad(id);
 
     if (actividad == null) {
@@ -170,6 +256,7 @@ class ActividadService {
       nuevaRutaIMG: rutaIMG,
       nuevaHora: hora,
       nuevaDuracion: duracion,
+      nuevosDias: dias,
     );
 
     return true;
@@ -189,9 +276,9 @@ class ActividadService {
 
   // Reordenar actividades
   bool reordenarActividades(
-      int oldIndex,
-      int newIndex,
-      ) {
+    int oldIndex,
+    int newIndex,
+  ) {
     if (oldIndex < 0 ||
         oldIndex >= _actividades.length ||
         newIndex < 0 ||
