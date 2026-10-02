@@ -1,10 +1,14 @@
 // ignore_for_file: unused_field
 
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:rutina_app/utils/global.dart';
 import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/services/actividad_service.dart';
+import 'package:rutina_app/widgets/selector_dias.dart';
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
@@ -23,6 +27,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
   TimeOfDay? _horaSeleccionada;
   Duration _duracionSeleccionada = const Duration(minutes: 15); // valor inicial por defecto
+
+  // NUEVO: días de la semana en que se repite (por defecto, todos)
+  List<int> _diasSeleccionados = List<int>.from(Actividad.todosLosDias);
 
   // ============================ Selección de hora (TimePicker) ============================
   Future<void> _seleccionarHora() async {
@@ -55,9 +62,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 onTap: () async {
                   Navigator.pop(context);
 
+                  // maxWidth/maxHeight reducen el tamaño: los buckets
+                  // aceptan imágenes de hasta 2 MB.
                   final XFile? imagen = await _picker.pickImage(
                     source: ImageSource.camera,
                     imageQuality: 80,
+                    maxWidth: 1280,
+                    maxHeight: 1280,
                   );
 
                   if (imagen == null) return;
@@ -77,6 +88,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   final XFile? imagen = await _picker.pickImage(
                     source: ImageSource.gallery,
                     imageQuality: 80,
+                    maxWidth: 1280,
+                    maxHeight: 1280,
                   );
 
                   if (imagen == null) return;
@@ -95,29 +108,32 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
   bool _guardando = false;
 
+  void _mostrarMensaje(String texto, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), backgroundColor: color),
+    );
+  }
+
   // ============================ Guardar actividad ============================
   Future<void> _guardarActividad() async {
+    // NUEVO: evita guardar dos veces si se toca el botón rápido
+    if (_guardando) return;
 
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
 
     if (nombre.isEmpty || _horaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Debe ingresar el nombre y la hora."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("Debe ingresar el nombre y la hora.", Colors.red);
       return;
     }
 
     if (_imagenSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Debe seleccionar una imagen."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("Debe seleccionar una imagen.", Colors.red);
+      return;
+    }
+
+    if (_diasSeleccionados.isEmpty) {
+      _mostrarMensaje("Elige al menos un día de la semana.", Colors.red);
       return;
     }
 
@@ -127,22 +143,20 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     final pacienteId = authService.pacienteSeleccionado?.pacienteId;
 
     if (pacienteId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("No hay ningún paciente seleccionado."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("No hay ningún paciente seleccionado.", Colors.red);
       return;
     }
 
+    // La ruta de la imagen queda vacía aquí: el servicio sube el archivo a
+    // Storage y completa la ruta real antes de guardar.
     final actividad = Actividad(
       id: '', // provisorio: la base genera el id real al insertar
       nombre: nombre,
       descripcion: descripcion,
-      rutaIMG: _imagenSeleccionada?.path ?? "",
+      rutaIMG: '',
       hora: _horaSeleccionada!,
       duracion: _duracionSeleccionada,
+      diasSemana: _diasSeleccionados,
     );
 
     setState(() {
@@ -150,24 +164,25 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     });
 
     try {
-      await actividadService.crearActividad(actividad, pacienteId);
+      await actividadService.crearActividad(
+        actividad,
+        pacienteId,
+        imagen: _imagenSeleccionada,
+      );
+
+      // Reprograma los avisos sin hacer esperar al usuario
+      unawaited(notificationService.sincronizar());
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Actividad creada correctamente."),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _mostrarMensaje("Actividad creada correctamente.", Colors.green);
       Navigator.pop(context, true);
+    } on SolapeActividadException catch (e) {
+      // La base de datos bloqueó la actividad porque se cruza con otra
+      if (!mounted) return;
+      _mostrarMensaje(e.toString(), Colors.orange.shade800);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No se pudo guardar la actividad: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarMensaje("No se pudo guardar la actividad: $e", Colors.red);
     } finally {
       if (mounted) {
         setState(() {
@@ -203,7 +218,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           IconButton(
             icon: const Icon(Icons.check, color: Colors.black87),
             tooltip: 'Guardar actividad',
-            onPressed: _guardarActividad,
+            onPressed: _guardando ? null : _guardarActividad,
           ),
         ],
       ),
@@ -331,13 +346,31 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     },
                   ),
 
+                  const SizedBox(height: 20),
+
+                  // ------------------ NUEVO: días en que se repite ------------------
+                  SelectorDias(
+                    seleccionados: _diasSeleccionados,
+                    onCambio: (nuevos) {
+                      setState(() {
+                        _diasSeleccionados = nuevos;
+                      });
+                    },
+                  ),
+
                   const SizedBox(height: 40),
 
                   // ------------------ Botón principal de guardar ------------------
                   ElevatedButton.icon(
-                    onPressed: _guardarActividad,
-                    icon: const Icon(Icons.save),
-                    label: const Text("Guardar actividad"),
+                    onPressed: _guardando ? null : _guardarActividad,
+                    icon: _guardando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_guardando ? "Guardando..." : "Guardar actividad"),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: Colors.black87,
