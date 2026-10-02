@@ -109,7 +109,7 @@ class _ImagenStorageState extends State<ImagenStorage> {
           height: widget.height,
           fit: widget.fit,
           gaplessPlayback: true,
-          errorBuilder: (_, __, ___) => placeholder,
+          errorBuilder: (_, _, _) => placeholder,
         );
       },
     );
