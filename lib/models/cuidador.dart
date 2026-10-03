@@ -79,7 +79,7 @@ class Cuidador extends Usuario {
       nombre: usuario['nombre'],
       email: usuario['email'],
       fechaNacimiento: DateTime.parse(usuario['fecha_nacimiento'],),
-      telefono: map['telefono'], // 'telefono' vive en la tabla cuidadores
+      telefono: map['telefono'] ?? '', // 'telefono' vive en la tabla cuidadores
       fotoPerfil: usuario['foto_perfil'], // 'foto_perfil' vive en la tabla usuarios
       pacientes: [],
     );
