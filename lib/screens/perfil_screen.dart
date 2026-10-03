@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/cuidador.dart';
 import 'package:rutina_app/models/paciente.dart';
@@ -306,6 +307,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
       if (!mounted) return;
 
+      final String horaVence = DateFormat('HH:mm').format(expira);
+
+      // Texto que se manda por WhatsApp, SMS, etc. con el botón Compartir
+      final String mensajeCompartir =
+          "Hola, te invito a vincularte conmigo en RutinaApp. "
+          "Abre la app, entra a Perfil > Vincular paciente y escribe "
+          "este código: $codigo (vence a las $horaVence y sirve una sola vez).";
+
       await showDialog(
         context: context,
         builder: (dialogContext) {
@@ -330,14 +339,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Vence a las ${DateFormat('HH:mm').format(expira)} "
-                  "y sirve una sola vez.",
+                  "Vence a las $horaVence y sirve una sola vez.",
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.black54),
                 ),
               ],
             ),
             actions: [
+              TextButton.icon(
+                onPressed: () {
+                  // Abre el menú de compartir del celular (WhatsApp, SMS...)
+                  SharePlus.instance.share(
+                    ShareParams(text: mensajeCompartir),
+                  );
+                },
+                icon: const Icon(Icons.share),
+                label: const Text("Compartir"),
+              ),
               TextButton.icon(
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: codigo));
