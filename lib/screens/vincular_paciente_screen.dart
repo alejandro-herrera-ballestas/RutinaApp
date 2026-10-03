@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:rutina_app/services/Cuidador_Paciente.dart';
+import 'package:flutter/services.dart';
 import 'package:rutina_app/utils/global.dart';
 
-// Pantalla donde un Cuidador busca a su Paciente por correo electrónico
-// y queda vinculado a él (tabla cuidador_paciente).
+// Pantalla donde un Cuidador escribe el CÓDIGO que le dio su paciente
+// (el paciente lo genera en su Perfil). Así el paciente es quien acepta
+// el vínculo (tabla cuidador_paciente).
 class VincularPacienteScreen extends StatefulWidget {
   const VincularPacienteScreen({super.key});
 
@@ -12,87 +15,76 @@ class VincularPacienteScreen extends StatefulWidget {
 }
 
 class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final CuidadorPaciente cuidadorPacienteService = CuidadorPaciente();
+  final TextEditingController codigoController = TextEditingController();
 
-  bool buscando = false;
+  bool vinculando = false;
 
-  Future<void> _buscarYVincular() async {
-    final email = emailController.text.trim();
+  void _mostrarMensaje(String texto, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), backgroundColor: color),
+    );
+  }
 
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ingresa el correo del paciente."),
-          backgroundColor: Colors.red,
-        ),
-      );
+  Future<void> _vincular() async {
+    if (vinculando) return;
+
+    final codigo = codigoController.text.trim().toUpperCase();
+
+    if (codigo.length != 6) {
+      _mostrarMensaje("El código tiene 6 caracteres.", Colors.red);
       return;
     }
 
-    // OJO: usamos el cuidador logueado y su 'cuidadorId' (el id propio de
-    // la tabla 'cuidadores', NO el usuario_id / uid de Auth). Nunca hay
-    // que usar supabase.auth.currentUser?.id directamente acá.
+    // Solo un cuidador puede usar un código
     final cuidador = authService.cuidadorActual;
     if (cuidador == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Debes iniciar sesión como cuidador para vincular un paciente."),
-          backgroundColor: Colors.red,
-        ),
+      _mostrarMensaje(
+        "Debes iniciar sesión como cuidador para vincular un paciente.",
+        Colors.red,
       );
       return;
     }
 
     setState(() {
-      buscando = true;
+      vinculando = true;
     });
 
     try {
-      // Búsqueda vía la función 'buscar_paciente_por_email' de Supabase
-      // (el correo vive en 'usuarios', no en 'pacientes').
-      final encontrado = await cuidadorPacienteService.buscarPacientePorEmail(email);
+      final resultado =
+          await authService.cuidadorPacienteService.vincularConCodigo(codigo);
 
-      if (encontrado == null) {
+      // null = código inválido, vencido o ya usado
+      if (resultado == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No se encontró ningún paciente registrado con ese correo."),
-            backgroundColor: Colors.red,
-          ),
+        _mostrarMensaje(
+          "Código inválido, vencido o ya usado. Pídele al paciente uno nuevo.",
+          Colors.red,
         );
         return;
       }
 
-      final String pacienteId = encontrado['paciente_id'];
-      final String nombrePaciente = encontrado['nombre'];
-
-      await cuidadorPacienteService.asignarPaciente(pacienteId, cuidador.cuidadorId);
+      final String nombrePaciente = resultado['nombre'].toString();
 
       // recargamos la lista del cuidador para que el nuevo paciente
       // quede disponible en el selector de Inicio/Calendario de inmediato.
       await authService.recargarPacientesDelCuidador();
 
+      // Ahora también debe recibir los avisos del paciente nuevo
+      unawaited(notificationService.sincronizar());
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Vinculado con $nombrePaciente correctamente."),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _mostrarMensaje("Vinculado con $nombrePaciente correctamente.", Colors.green);
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No se pudo vincular: $e"),
-          backgroundColor: Colors.red,
-        ),
+      _mostrarMensaje(
+        e.toString().replaceFirst('Exception: ', ''),
+        Colors.red,
       );
     } finally {
       if (mounted) {
         setState(() {
-          buscando = false;
+          vinculando = false;
         });
       }
     }
@@ -120,12 +112,14 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.person_search, size: 80),
+              const Icon(Icons.link, size: 80),
               const SizedBox(height: 20),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 30),
                 child: Text(
-                  "Ingresa el correo con el que tu paciente se registró en la app.",
+                  "Pídele a tu paciente que abra su Perfil y toque "
+                  "\"Generar código para un cuidador\". Escribe aquí "
+                  "el código de 6 caracteres que le aparece.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
@@ -134,13 +128,24 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
               SizedBox(
                 width: 300,
                 child: TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: "Correo del paciente",
-                    hintText: "Ingrese el correo electrónico",
-                    prefixIcon: Icon(Icons.email_outlined),
+                  controller: codigoController,
+                  maxLength: 6,
+                  textAlign: TextAlign.center,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                  ],
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8,
                   ),
+                  decoration: const InputDecoration(
+                    labelText: "Código del paciente",
+                    hintText: "K7M2QX",
+                    counterText: "",
+                  ),
+                  onFieldSubmitted: (_) => _vincular(),
                 ),
               ),
               const SizedBox(height: 30),
@@ -148,7 +153,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                 width: 300,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: buscando ? null : _buscarYVincular,
+                  onPressed: vinculando ? null : _vincular,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6D8B74),
                     foregroundColor: Colors.white,
@@ -156,7 +161,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: buscando
+                  child: vinculando
                       ? const SizedBox(
                           width: 22,
                           height: 22,
@@ -165,7 +170,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text("Buscar y vincular", style: TextStyle(fontSize: 18)),
+                      : const Text("Vincular", style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],
@@ -177,7 +182,7 @@ class _VincularPacienteScreenState extends State<VincularPacienteScreen> {
 
   @override
   void dispose() {
-    emailController.dispose();
+    codigoController.dispose();
     super.dispose();
   }
 }
