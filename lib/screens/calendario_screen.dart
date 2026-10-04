@@ -288,12 +288,14 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   }
 
   // CONSTRUIR TARJETA DE ACTIVIDAD
-  // 'compacta' = tarjeta angosta (varias en paralelo) o baja: se oculta la
-  // imagen y la flecha para que el nombre y la hora sigan visibles.
+  // 'compacta' = tarjeta angosta (varias en paralelo) o baja: se usa una
+  // miniatura más pequeña y se oculta la flecha para que el nombre y la hora
+  // sigan visibles. Solo se quita la imagen si la tarjeta es MUY angosta.
   Widget _crearTarjetaActividad(
       BuildContext context,
       BloqueHorario bloque, {
       required bool compacta,
+      required double ancho,
       }) {
     final actividad = bloque.actividad;
 
@@ -305,6 +307,11 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
     final int minutos =
         bloque.calcularDuracion().inMinutes;
+
+    // La imagen se muestra siempre, más pequeña en tarjetas compactas.
+    // Solo se oculta si la tarjeta es demasiado angosta para leerse.
+    final bool mostrarImagen = ancho >= 110;
+    final double anchoImagen = compacta ? 44 : 65;
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -341,15 +348,15 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
           child: Row(
             children: [
-              // IMAGEN (solo en tarjetas normales)
-              if (!compacta)
+              // IMAGEN (miniatura en tarjetas compactas)
+              if (mostrarImagen)
                 SizedBox(
-                  width: 65,
+                  width: anchoImagen,
                   height: double.infinity,
                   child: ImagenStorage(
                     bucket: StorageService.bucketActividades,
                     ruta: actividad.rutaIMG,
-                    width: 65,
+                    width: anchoImagen,
                     height: double.infinity,
                     placeholder: Container(
                       color: Colors.grey.shade200,
@@ -560,6 +567,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         context,
         posicion.bloque,
         compacta: compacta,
+        ancho: anchoColumna - separacion,
       ),
     );
   }
@@ -690,6 +698,19 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
                           style: const TextStyle(
                             fontSize: 15,
                             color: Colors.black54,
+                          ),
+                        ),
+
+                        const SizedBox(height: 2),
+
+                        // Explica por qué una actividad puede no aparecer
+                        // en un día: solo salen las que se repiten ese día.
+                        Text(
+                          "Solo actividades que se repiten el "
+                          "${DateFormat('EEEE', 'es_ES').format(_fechaSeleccionada)}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black45,
                           ),
                         ),
                       ],
