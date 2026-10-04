@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rutina_app/utils/global.dart';
 
@@ -11,6 +12,7 @@ class _UrlEnCache {
 // Muestra una imagen guardada en un bucket privado de Supabase Storage.
 // Pide el enlace firmado, lo guarda en memoria 50 minutos (el enlace dura
 // 60) y muestra un "placeholder" mientras carga o si no hay imagen.
+//
 // Si cambias la imagen que vive en la MISMA ruta (como la foto de perfil),
 // llama a ImagenStorage.invalidar(...) y sube el parámetro 'version'
 // para que se vuelva a pedir.
@@ -81,8 +83,10 @@ class _ImagenStorageState extends State<ImagenStorage> {
       ImagenStorage._cache[clave] =
           _UrlEnCache(url, DateTime.now().add(const Duration(minutes: 50)));
       return url;
-    } catch (_) {
-      // Ruta antigua (ej: ruta local del celular) o sin permiso: placeholder
+    } catch (e) {
+      // Ruta antigua (ej: ruta local del celular) o sin permiso: placeholder.
+      // Se imprime para poder ver la causa en la consola de flutter run.
+      debugPrint('ImagenStorage: no se pudo firmar "$ruta": $e');
       return null;
     }
   }
@@ -109,7 +113,10 @@ class _ImagenStorageState extends State<ImagenStorage> {
           height: widget.height,
           fit: widget.fit,
           gaplessPlayback: true,
-          errorBuilder: (_, _, _) => placeholder,
+          errorBuilder: (_, error, __) {
+            debugPrint('ImagenStorage: no se pudo mostrar "${widget.ruta}": $error');
+            return placeholder;
+          },
         );
       },
     );

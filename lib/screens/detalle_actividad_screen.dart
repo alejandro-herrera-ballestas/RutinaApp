@@ -248,7 +248,22 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
       unawaited(notificationService.sincronizar());
 
       if (!mounted) return;
-      _mostrarMensaje("Actividad actualizada correctamente.", Colors.green);
+
+      // Si se cambiaron los días y ya no incluyen el día que se estaba
+      // viendo, la actividad dejará de verse aquí. Se avisa para que no
+      // parezca que se borró.
+      final bool sigueEnEsteDia =
+          _diasSeleccionados.contains(widget.fecha.weekday);
+
+      if (sigueEnEsteDia) {
+        _mostrarMensaje("Actividad actualizada correctamente.", Colors.green);
+      } else {
+        _mostrarMensaje(
+          "Actividad actualizada. Ya no se repite en este día de la "
+          "semana, por eso no aparece aquí (no se borró).",
+          Colors.orange.shade800,
+        );
+      }
       Navigator.pop(context, true);
     } on SolapeActividadException catch (e) {
       // La base de datos bloqueó el cambio porque se cruza con otra actividad
