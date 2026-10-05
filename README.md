@@ -523,13 +523,9 @@ Durante el desarrollo de RutinaApp se han aplicado conceptos relacionados con:
 
 **Alejandro Herrera Ballestas**
 
-Estudiante de Ingeniería de Sistemas.
-
 ### Tester
 
 **Juan Esteban Primera**
-
-Responsable de apoyar las pruebas funcionales, validación de flujos y detección de errores de la aplicación.
 
 ---
 
