@@ -42,14 +42,22 @@ class ActividadService {
 
   // Trae las actividades de un paciente YA combinadas con su progreso
   // del día indicado. Solo devuelve las que ocurren ese día de la semana.
-  // Esto es lo que deben usar home_screen y calendario_screen.
   Future<List<Actividad>> obtenerActividadesConProgreso(
     String pacienteId,
     DateTime fecha,
   ) async {
     final todas = await obtenerActividadesPaciente(pacienteId);
+    return filtrarDiaConProgreso(todas, fecha);
+  }
 
-    // Nos quedamos solo con las que se repiten en el día de la semana pedido
+  // A partir de la lista COMPLETA del paciente, deja solo las que se repiten
+  // en el día de la semana de 'fecha' y les pone su progreso de ese día.
+  // Sirve cuando la pantalla ya cargó todas las actividades y no quiere
+  // pedirlas otra vez (Inicio y Calendario).
+  Future<List<Actividad>> filtrarDiaConProgreso(
+    List<Actividad> todas,
+    DateTime fecha,
+  ) async {
     final List<Actividad> delDia = [];
     for (final actividad in todas) {
       if (actividad.ocurreEn(fecha)) {
