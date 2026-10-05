@@ -46,6 +46,10 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
   bool _procesando = false; // evita doble tap mientras se guarda/elimina/completa
 
+  // Solo el CUIDADOR puede editar o eliminar. El paciente únicamente ve la
+  // actividad y la marca como completada (la base de datos también lo exige).
+  bool get _esCuidador => authService.cuidadorActual != null;
+
   @override
   void initState() {
     super.initState();
@@ -356,8 +360,8 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2),
       appBar: AppBar(
-        title: const Text(
-          "Editar Actividad",
+        title: Text(
+          _esCuidador ? "Editar Actividad" : "Actividad",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -372,7 +376,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
             Navigator.pop(context);
           },
         ),
-        actions: [
+        actions: !_esCuidador ? <Widget>[] : [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             tooltip: 'Eliminar actividad',
@@ -407,7 +411,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                 children: [
                   // ------------------ Imagen de la actividad ------------------
                   GestureDetector(
-                    onTap: _seleccionarImagen,
+                    onTap: _esCuidador ? _seleccionarImagen : null,
                     child: Container(
                       height: 170,
                       decoration: BoxDecoration(
@@ -424,6 +428,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   // ------------------ Nombre de la actividad ------------------
                   TextFormField(
                     controller: nombreActividadController,
+                    readOnly: !_esCuidador,
                     decoration: const InputDecoration(
                       labelText: "Nombre de la actividad",
                       hintText: "Ej: Cepillarse los dientes",
@@ -435,6 +440,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   // ------------------ Descripción (opcional) ------------------
                   TextFormField(
                     controller: descripcionActividadController,
+                    readOnly: !_esCuidador,
                     maxLines: 3,
                     decoration: const InputDecoration(
                       labelText: "Descripción (Opcional)",
@@ -448,7 +454,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   TextFormField(
                     controller: horaActividadController,
                     readOnly: true,
-                    onTap: _seleccionarHora,
+                    onTap: _esCuidador ? _seleccionarHora : null,
                     decoration: const InputDecoration(
                       labelText: "Ingrese la hora de la actividad",
                       hintText: "Ej: 8:00",
@@ -473,7 +479,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                       DropdownMenuItem(value: Duration(minutes: 45), child: Text("45 minutos")),
                       DropdownMenuItem(value: Duration(hours: 1), child: Text("1 hora")),
                     ],
-                    onChanged: (nuevaDuracion) {
+                    onChanged: !_esCuidador ? null : (nuevaDuracion) {
                       if (nuevaDuracion == null) return;
                       setState(() {
                         _duracionSeleccionada = nuevaDuracion;
@@ -485,6 +491,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
                   // ------------------ NUEVO: días en que se repite ------------------
                   SelectorDias(
+                    habilitado: _esCuidador,
                     seleccionados: _diasSeleccionados,
                     onCambio: (nuevos) {
                       setState(() {
@@ -496,6 +503,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   const SizedBox(height: 40),
 
                   // ------------------ Botón principal de guardar ------------------
+                  if (_esCuidador)
                   ElevatedButton.icon(
                     onPressed: _procesando ? null : _guardarCambios,
                     icon: const Icon(Icons.save),
@@ -533,6 +541,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                   const SizedBox(height: 20),
 
                 //--------------- Botón eliminar actividad -----------------------
+                  if (_esCuidador)
                   OutlinedButton.icon(
                     onPressed: _procesando ? null : _confirmarEliminar,
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
