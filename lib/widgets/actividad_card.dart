@@ -1,9 +1,9 @@
 // ignore_for_file: camel_case_types
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:rutina_app/models/actividad.dart';
+import 'package:rutina_app/services/storage_service.dart';
+import 'package:rutina_app/widgets/imagen_storage.dart';
 
 class actividadCard extends StatelessWidget {
   final Actividad actividad;
@@ -19,11 +19,15 @@ class actividadCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: Image.file(
-          File(actividad.rutaIMG),
-          width: 60,
-          height: 60,
-          fit: BoxFit.cover,
+        // La imagen ya no es un archivo local: viene del bucket 'actividades'
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: ImagenStorage(
+            bucket: StorageService.bucketActividades,
+            ruta: actividad.rutaIMG,
+            width: 60,
+            height: 60,
+          ),
         ),
 
         title: Text(actividad.nombre),
