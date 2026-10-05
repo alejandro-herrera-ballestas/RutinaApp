@@ -2,9 +2,9 @@
 
 RutinaApp es una aplicación móvil desarrollada con **Flutter y Dart** cuyo objetivo es facilitar la organización y seguimiento de rutinas diarias mediante una interfaz visual, sencilla e intuitiva.
 
-El proyecto está especialmente orientado a personas que pueden beneficiarse de una estructura visual para organizar sus actividades y seguir una rutina de manera más clara.
+La aplicación está orientada especialmente a personas que pueden beneficiarse de una estructura visual para organizar sus actividades y seguir una rutina de manera más clara. El sistema contempla dos roles principales: **Cuidador** y **Paciente**.
 
-> 🚧 **Estado del proyecto:** En desarrollo
+> 🚧 **Estado del proyecto:** En desarrollo activo
 
 ---
 
@@ -16,24 +16,60 @@ El proyecto está especialmente orientado a personas que pueden beneficiarse de 
   <img width="180" alt="RutinaApp" src="https://github.com/user-attachments/assets/3ebcf435-7465-4b07-b976-042feab678d2" />
 </p>
 
-
+---
 
 ## ✨ Características
 
-* 🔐 Registro e inicio de sesión mediante **Supabase Auth**.
-* 👤 Gestión de perfiles de usuario.
-* 👨‍👦 Modelo de usuarios con roles de **Cuidador** y **Paciente**.
-* 📅 Organización de actividades mediante horarios.
-* ➕ Creación de actividades con nombre, descripción, hora y duración.
-* ✏️ Edición de actividades.
-* 🗑️ Eliminación de actividades.
-* 📷 Selección de imágenes mediante cámara o galería.
-* ✅ Marcado de actividades como completadas.
-* 📊 Cálculo del progreso de las actividades.
-* 📆 Vista de calendario con organización de actividades por horario.
-* ⚠️ Detección de conflictos entre horarios.
-* 👥 Relación entre cuidadores y pacientes.
-* 📱 Aplicación desarrollada con Flutter para Android e iOS.
+### 🔐 Usuarios y autenticación
+
+* Registro e inicio de sesión mediante **Supabase Auth**.
+* Gestión de perfiles de usuario.
+* Roles de **Cuidador** y **Paciente**.
+* Asociación de cuidadores con uno o varios pacientes.
+* Selección del paciente activo por parte del cuidador.
+
+### 📅 Rutinas y actividades
+
+* Creación de actividades con nombre, descripción, imagen, hora y duración.
+* Edición y eliminación de actividades.
+* Organización de actividades dentro del horario del paciente.
+* Detección de conflictos entre horarios.
+* Marcado de actividades como completadas.
+* Reinicio del estado de una actividad.
+* Persistencia de actividades asociadas al paciente en Supabase.
+
+### 📊 Seguimiento y progreso
+
+* Registro del progreso de las actividades por fecha.
+* Consulta del progreso diario del paciente.
+* Cálculo del porcentaje de actividades completadas.
+* Visualización del progreso dentro de la aplicación.
+
+### 🖼️ Imágenes y almacenamiento
+
+* Selección de imágenes desde la galería.
+* Captura de imágenes mediante la cámara.
+* Gestión de imágenes de actividades y perfiles.
+* Uso de **Supabase Storage** para el almacenamiento remoto de imágenes.
+
+### 🔔 Notificaciones
+
+* Servicio de notificaciones integrado en la aplicación.
+* Preparación de recordatorios asociados a las actividades y horarios.
+
+### 📱 Navegación
+
+La aplicación cuenta con una navegación principal organizada en:
+
+```text
+┌───────────────┐
+│    Inicio     │
+├───────────────┤
+│  Calendario   │
+├───────────────┤
+│    Perfil     │
+└───────────────┘
+```
 
 ---
 
@@ -51,6 +87,7 @@ El proyecto está especialmente orientado a personas que pueden beneficiarse de 
 * **Supabase**
 * **Supabase Auth**
 * **PostgreSQL / SQL**
+* **Supabase Storage**
 
 ### Herramientas
 
@@ -61,7 +98,7 @@ El proyecto está especialmente orientado a personas que pueden beneficiarse de 
 
 ### Paquetes principales
 
-* `supabase_flutter` — autenticación y comunicación con Supabase.
+* `supabase_flutter` — autenticación, base de datos y comunicación con Supabase.
 * `image_picker` — selección de imágenes mediante cámara o galería.
 * `uuid` — generación de identificadores únicos.
 * `intl` — formato y manejo de fechas.
@@ -87,6 +124,7 @@ lib/
 ├── services/
 │   ├── auth_service.dart
 │   ├── actividad_service.dart
+│   ├── progreso_actividad_service.dart
 │   ├── usuario_service.dart
 │   ├── paciente_service.dart
 │   ├── cuidador_service.dart
@@ -129,15 +167,15 @@ lib/
 
 **Models**
 
-Contienen las entidades principales de la aplicación y la lógica relacionada con usuarios, pacientes, cuidadores, horarios y actividades.
+Contienen las entidades principales y su lógica asociada: usuarios, pacientes, cuidadores, horarios y actividades.
 
 **Services**
 
-Gestionan la lógica de negocio y la comunicación con Supabase, incluyendo autenticación, usuarios, pacientes, cuidadores y actividades.
+Gestionan la lógica de negocio y la comunicación con Supabase, incluyendo autenticación, usuarios, relaciones cuidador-paciente, actividades, progreso y notificaciones.
 
 **Screens**
 
-Contienen las diferentes interfaces y flujos de navegación de la aplicación.
+Contienen las interfaces y flujos de navegación de la aplicación.
 
 **Widgets**
 
@@ -177,6 +215,10 @@ Permite administrar pacientes y gestionar actividades asociadas a ellos.
 
 Cuenta con un horario propio y permite realizar el seguimiento de sus actividades.
 
+### Relación cuidador-paciente
+
+Un cuidador puede estar asociado a uno o varios pacientes. La aplicación permite cargar las relaciones existentes y seleccionar el paciente sobre el cual se desea trabajar.
+
 ---
 
 ## 📅 Organización de horarios
@@ -200,17 +242,17 @@ Paciente
 
 Cada `BloqueHorario` contiene:
 
-* Hora de inicio
-* Hora de finalización
-* Actividad asociada
+* Hora de inicio.
+* Hora de finalización.
+* Actividad asociada.
 
 El sistema puede:
 
-* Ordenar las actividades por hora.
+* Ordenar actividades por hora.
 * Detectar conflictos entre horarios.
 * Mover actividades manteniendo su duración.
 * Obtener la actividad correspondiente al momento actual.
-* Generar bloques automáticamente a partir de las actividades.
+* Generar bloques a partir de las actividades.
 * Ajustar la distribución del horario.
 
 ---
@@ -227,6 +269,7 @@ Cada actividad contiene información como:
 * Duración.
 * Estado de completado.
 * Fecha de completado.
+* Paciente asociado.
 
 Las actividades pueden:
 
@@ -235,12 +278,12 @@ Las actividades pueden:
 * Eliminar.
 * Marcar como completadas.
 * Reiniciar su estado.
-* Organizar dentro del horario.
-* Consultarse desde Supabase.
+* Organizarse dentro del horario.
+* Consultarse y persistirse mediante Supabase.
 
 ---
 
-## 🔐 Autenticación
+## 🔐 Autenticación y roles
 
 La autenticación se realiza mediante **Supabase Auth**.
 
@@ -252,15 +295,9 @@ Usuario
 └── Paciente
 ```
 
-El proceso de registro crea la cuenta en Supabase Auth y posteriormente registra la información correspondiente en las tablas de usuarios, cuidadores o pacientes.
+El proceso de autenticación permite identificar el tipo de usuario y cargar la información asociada.
 
-Durante el inicio de sesión, la aplicación:
-
-1. Autentica las credenciales mediante Supabase Auth.
-2. Obtiene el usuario autenticado.
-3. Comprueba si corresponde a un cuidador o paciente.
-4. Carga la información asociada.
-5. Mantiene el usuario actual disponible para el resto de la aplicación.
+En el caso de un cuidador, la aplicación además carga sus pacientes asociados y permite seleccionar cuál de ellos se encuentra activo para consultar y gestionar sus actividades.
 
 ---
 
@@ -296,7 +333,7 @@ Relaciona un paciente con su usuario correspondiente.
 
 ### `cuidadores`
 
-Almacena información adicional de los cuidadores, como su teléfono.
+Almacena información adicional de los cuidadores.
 
 ### `cuidador_paciente`
 
@@ -308,49 +345,37 @@ Almacena las actividades asociadas a un paciente, incluyendo nombre, descripció
 
 ### `progreso_actividad`
 
-Permite registrar el estado de una actividad en una fecha determinada y almacenar la hora en la que fue completada.
+Permite registrar el estado de una actividad en una fecha determinada y almacenar información relacionada con su cumplimiento.
 
 ---
 
 ## 🔄 Persistencia
 
-Actualmente el proyecto cuenta con **integración funcional con Supabase** para:
+La aplicación utiliza **Supabase como backend principal** para mantener la información de usuarios, relaciones y actividades.
 
-* Registro de usuarios.
-* Inicio de sesión.
-* Gestión de usuarios.
-* Gestión de pacientes.
-* Gestión de cuidadores.
-* Relaciones entre cuidadores y pacientes.
-* Operaciones CRUD de actividades a nivel de servicio.
+Actualmente se cuenta con persistencia para:
 
-La interfaz actual de gestión de actividades todavía utiliza una lista local en `ActividadService` para determinadas operaciones, mientras se completa la transición hacia una gestión totalmente persistente mediante Supabase.
+* Registro e inicio de sesión.
+* Información de usuarios.
+* Pacientes y cuidadores.
+* Relaciones cuidador-paciente.
+* Actividades asociadas a pacientes.
+* Estado y progreso de las actividades.
+* Información relacionada con imágenes mediante almacenamiento remoto.
 
-El proyecto también mantiene `DatabaseService` como una estructura preparada para futuras mejoras de persistencia local.
+El flujo de trabajo está diseñado para que el cuidador pueda seleccionar un paciente y que las pantallas de inicio, calendario y gestión de actividades trabajen sobre ese paciente seleccionado.
 
 ---
 
 ## 📱 Interfaz y navegación
 
-La aplicación cuenta con una navegación principal dividida en tres secciones:
-
-```text
-┌───────────────┐
-│    Inicio     │
-├───────────────┤
-│  Calendario   │
-├───────────────┤
-│    Perfil     │
-└───────────────┘
-```
-
 ### Inicio
 
-Permite visualizar las actividades del día y acceder a la creación y edición de actividades.
+Permite visualizar las actividades del día y acceder a la creación y edición de actividades. Para los cuidadores, el flujo contempla la selección del paciente que se desea gestionar.
 
 ### Calendario
 
-Muestra las actividades organizadas dentro de un horario diario y permite seleccionar diferentes fechas.
+Muestra las actividades organizadas dentro de un horario diario y permite trabajar con diferentes fechas.
 
 También detecta conflictos cuando dos actividades ocupan intervalos de tiempo que se superponen.
 
@@ -366,21 +391,51 @@ La aplicación utiliza `image_picker` para permitir al usuario:
 
 * Seleccionar una imagen desde la galería.
 * Tomar una fotografía mediante la cámara.
-* Visualizar la imagen seleccionada dentro de la actividad o perfil.
+* Visualizar la imagen seleccionada dentro de actividades o perfiles.
+
+Las imágenes pueden gestionarse mediante **Supabase Storage**, permitiendo complementar la información almacenada en la base de datos con recursos multimedia.
 
 ---
 
 ## 📊 Progreso
 
-El modelo `Paciente` incluye lógica para calcular el progreso de las actividades de su horario.
+El sistema registra el progreso de las actividades por fecha mediante `ProgresoActividadService`.
 
-El porcentaje se obtiene a partir de la relación entre actividades completadas y actividades totales:
+El porcentaje de progreso se basa en la relación entre actividades completadas y actividades totales:
 
 ```text
 Progreso = (actividades completadas / actividades totales) × 100
 ```
 
-La estructura de widgets relacionada con la visualización del progreso se encuentra actualmente en desarrollo.
+El progreso puede consultarse para un día determinado y actualizarse cuando el usuario marca una actividad como completada.
+
+---
+
+## 🔔 Notificaciones
+
+El proyecto incluye `NotificationService` como servicio dedicado al manejo de notificaciones.
+
+Esta funcionalidad forma parte de la arquitectura actual de la aplicación y continúa evolucionando junto con el sistema de recordatorios.
+
+---
+
+## 🧪 Pruebas
+
+El proyecto se encuentra en proceso de pruebas funcionales para validar los principales flujos de usuario, incluyendo:
+
+* Registro e inicio de sesión.
+* Diferenciación de roles.
+* Asociación y selección de pacientes.
+* Creación, edición y eliminación de actividades.
+* Organización de horarios y detección de conflictos.
+* Marcado y persistencia del progreso.
+* Gestión de imágenes.
+
+### Tester
+
+**Juan Esteban Primera** — Tester
+
+Participa en la validación funcional de la aplicación y en la identificación de errores durante el desarrollo.
 
 ---
 
@@ -401,25 +456,24 @@ RutinaApp se encuentra actualmente en **desarrollo activo**.
 * [x] Gestión de usuarios mediante Supabase.
 * [x] Gestión de cuidadores y pacientes mediante Supabase.
 * [x] Relación entre cuidadores y pacientes.
-* [x] Creación de actividades.
-* [x] Edición de actividades.
-* [x] Eliminación de actividades.
+* [x] Selección de paciente activo para cuidadores.
+* [x] Creación, edición y eliminación de actividades.
+* [x] Persistencia de actividades mediante Supabase.
 * [x] Selección de imágenes mediante cámara o galería.
-* [x] Marcado de actividades como completadas.
-* [x] Cálculo del progreso.
-* [x] Calendario diario.
+* [x] Gestión de imágenes mediante Supabase Storage.
+* [x] Marcado y seguimiento del progreso de actividades.
+* [x] Calendario y organización de horarios.
 * [x] Detección de conflictos entre horarios.
+* [x] Servicio de notificaciones.
 * [x] Scripts SQL para la estructura de la base de datos.
 * [x] Configuración de Supabase.
 
 ### En desarrollo
 
-* [ ] Completar la transición de la gestión local de actividades hacia persistencia completa mediante Supabase.
-* [ ] Completar el sistema visual de progreso.
-* [ ] Implementar notificaciones y recordatorios.
-* [ ] Mejorar la gestión de imágenes y almacenamiento remoto.
+* [ ] Ampliar y automatizar el sistema de notificaciones y recordatorios.
 * [ ] Mejorar la experiencia de usuario y accesibilidad.
-* [ ] Realizar pruebas más completas.
+* [ ] Ampliar las pruebas funcionales y de integración.
+* [ ] Optimizar la gestión y carga de imágenes.
 * [ ] Preparar una primera versión distribuible de la aplicación.
 
 ---
@@ -438,6 +492,7 @@ Además de su objetivo funcional, el proyecto permite aplicar y fortalecer conoc
 * Integración de servicios backend.
 * Autenticación de usuarios.
 * Desarrollo de interfaces gráficas.
+* Persistencia de datos.
 * Control de versiones con Git.
 
 ---
@@ -457,15 +512,24 @@ Durante el desarrollo de RutinaApp se han aplicado conceptos relacionados con:
 * Modelado de relaciones entre entidades.
 * Diseño de bases de datos relacionales.
 * Manejo de fechas, horas y duración de actividades.
+* Persistencia de información.
 * Control de versiones mediante Git.
 
 ---
 
-## 👨‍💻 Autor
+## 👨‍💻 Equipo
+
+### Autor / Desarrollador
 
 **Alejandro Herrera Ballestas**
 
 Estudiante de Ingeniería de Sistemas.
+
+### Tester
+
+**Juan Esteban Primera**
+
+Responsable de apoyar las pruebas funcionales, validación de flujos y detección de errores de la aplicación.
 
 ---
 
@@ -474,4 +538,3 @@ Estudiante de Ingeniería de Sistemas.
 ```text
 Flutter • Dart • Supabase • PostgreSQL • SQL • Git • GitHub
 ```
-
