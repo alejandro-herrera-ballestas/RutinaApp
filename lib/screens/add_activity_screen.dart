@@ -119,6 +119,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     // NUEVO: evita guardar dos veces si se toca el botón rápido
     if (_guardando) return;
 
+    // Solo un cuidador puede asignar actividades (el paciente no se las
+    // asigna a sí mismo). La base de datos también lo bloquea.
+    if (authService.cuidadorActual == null) {
+      _mostrarMensaje("Solo un cuidador puede asignar actividades.", Colors.red);
+      return;
+    }
+
     final nombre = nombreActividadController.text.trim();
     final descripcion = descripcionActividadController.text.trim();
 
