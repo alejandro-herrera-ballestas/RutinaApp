@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Trae las actividades del paciente seleccionado (el propio paciente,
   // o el que el cuidador tenga elegido) ya combinadas con el progreso de hoy.
+  // Solo salen las que se repiten el día de la semana de HOY.
   Future<void> _cargarActividades() async {
     final pacienteId = authService.pacienteSeleccionado?.pacienteId;
 
@@ -65,6 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final String fechaHoy = DateFormat("d 'de' MMMM", 'es_ES').format(DateTime.now());
+    final String diaHoy = DateFormat('EEEE', 'es_ES').format(DateTime.now());
+
+    // Solo un cuidador puede asignar actividades; el paciente las realiza.
+    final bool esCuidador = authService.cuidadorActual != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2),
@@ -126,11 +131,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
             else if (_actividades.isEmpty)
-              const Expanded(
+              // Mensaje que explica POR QUÉ no hay nada: Inicio solo muestra
+              // lo de hoy, y las de otros días están en el Calendario.
+              Expanded(
                 child: Center(
-                  child: Text(
-                    "No hay actividades para hoy.",
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "No hay actividades para hoy ($diaHoy).",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          esCuidador
+                              ? "Las actividades que se repiten otros días de la "
+                                "semana están en la pestaña Calendario."
+                              : "Tu cuidador aún no te ha asignado actividades para "
+                                "este día. En el Calendario puedes ver las de otros días.",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 14, color: Colors.black45),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )
@@ -163,19 +189,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final resultado = await Navigator.push(
-            context, MaterialPageRoute(
-              builder: (_) => const AddActivityScreen(),
-            ),
-          );
-          if (resultado == true) {
-            _cargarActividades();
-          }
-        },
-        child: const Icon(Icons.add_task),
-      ),
+
+      // El botón de agregar actividad SOLO existe para cuidadores.
+      floatingActionButton: esCuidador
+          ? FloatingActionButton(
+              onPressed: () async {
+                final resultado = await Navigator.push(
+                  context, MaterialPageRoute(
+                    builder: (_) => const AddActivityScreen(),
+                  ),
+                );
+                if (resultado == true) {
+                  _cargarActividades();
+                }
+              },
+              child: const Icon(Icons.add_task),
+            )
+          : null,
     );
   }
 }
