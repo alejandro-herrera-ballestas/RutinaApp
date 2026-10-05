@@ -40,6 +40,11 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   bool _cargando = true;
   String? _error;
 
+  // Número de la carga más reciente. Con el selector de días se puede
+  // cambiar de día muy rápido; así una respuesta lenta de un día anterior
+  // no pisa a la del día actual.
+  int _cargaActual = 0;
+
   DateTime _fechaSeleccionada = DateTime.now();
 
   // Altura aproximada de cada hora en el calendario.
@@ -64,6 +69,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   // día que se esté viendo) Y REGENERAR EL HORARIO
   Future<void> _cargarActividades() async {
     final pacienteId = authService.pacienteSeleccionado?.pacienteId;
+    final int miCarga = ++_cargaActual;
 
     setState(() {
       _cargando = true;
@@ -84,13 +90,13 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         pacienteId,
         _fechaSeleccionada,
       );
-      if (!mounted) return;
+      if (!mounted || miCarga != _cargaActual) return;
       setState(() {
         _actividades = actividades;
         _cargando = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || miCarga != _cargaActual) return;
       setState(() {
         _error = "No se pudieron cargar las actividades: $e";
         _cargando = false;
@@ -128,6 +134,123 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         );
       });
     }
+  }
+
+  // ============================================================
+  // SELECTOR DE DÍAS (tira de la semana, arriba del calendario)
+  // ============================================================
+
+  bool _mismoDia(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  // Lunes de la semana en la que cae la fecha dada
+  DateTime _lunesDeLaSemana(DateTime fecha) {
+    return DateTime(fecha.year, fecha.month, fecha.day - (fecha.weekday - 1));
+  }
+
+  void _seleccionarDia(DateTime dia) {
+    if (_mismoDia(dia, _fechaSeleccionada)) return;
+
+    setState(() {
+      _fechaSeleccionada = dia;
+    });
+
+    _cargarActividades();
+  }
+
+  // Salta una semana hacia atrás (-1) o adelante (1), al mismo día de la semana
+  void _moverSemana(int semanas) {
+    _seleccionarDia(
+      DateTime(
+        _fechaSeleccionada.year,
+        _fechaSeleccionada.month,
+        _fechaSeleccionada.day + 7 * semanas,
+      ),
+    );
+  }
+
+  Widget _crearSelectorDias() {
+    const List<String> nombres = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+    final DateTime lunes = _lunesDeLaSemana(_fechaSeleccionada);
+    final DateTime hoy = DateTime.now();
+
+    final List<Widget> dias = [];
+
+    for (int i = 0; i < 7; i++) {
+      final DateTime dia = DateTime(lunes.year, lunes.month, lunes.day + i);
+      final bool seleccionado = _mismoDia(dia, _fechaSeleccionada);
+      final bool esHoy = _mismoDia(dia, hoy);
+
+      dias.add(
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _seleccionarDia(dia),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: seleccionado ? Colors.black87 : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  // el día de hoy lleva borde verde para ubicarse rápido
+                  color: esHoy && !seleccionado
+                      ? Colors.green
+                      : Colors.grey.shade300,
+                  width: esHoy ? 1.5 : 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    nombres[i],
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: seleccionado ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${dia.day}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: seleccionado ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Semana anterior',
+            icon: const Icon(Icons.chevron_left),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
+            onPressed: () => _moverSemana(-1),
+          ),
+          ...dias,
+          IconButton(
+            tooltip: 'Semana siguiente',
+            icon: const Icon(Icons.chevron_right),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
+            onPressed: () => _moverSemana(1),
+          ),
+        ],
+      ),
+    );
   }
 
   // CAMBIAR FECHA
@@ -731,6 +854,9 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
             // Solo aparece para cuidadores con más de un paciente.
             SelectorPaciente(onCambio: _cargarActividades),
+
+            // Selector de días de la semana (arriba del calendario)
+            _crearSelectorDias(),
 
             // CONFLICTOS (con el bloqueo de la base de datos ya no deberían
             // aparecer; se deja como red de seguridad)
