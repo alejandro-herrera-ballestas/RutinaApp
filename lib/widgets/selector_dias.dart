@@ -6,10 +6,15 @@ class SelectorDias extends StatelessWidget {
   final List<int> seleccionados;
   final ValueChanged<List<int>> onCambio;
 
+  // Con habilitado = false solo se muestran los días (el paciente no puede
+  // cambiarlos).
+  final bool habilitado;
+
   const SelectorDias({
     super.key,
     required this.seleccionados,
     required this.onCambio,
+    this.habilitado = true,
   });
 
   static const Map<int, String> nombres = {
@@ -46,7 +51,7 @@ class SelectorDias extends StatelessWidget {
         FilterChip(
           label: Text(nombres[dia]!),
           selected: seleccionados.contains(dia),
-          onSelected: (activo) => _alternarDia(dia, activo),
+          onSelected: habilitado ? (activo) => _alternarDia(dia, activo) : null,
         ),
       );
     }
@@ -60,6 +65,7 @@ class SelectorDias extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Wrap(spacing: 6, runSpacing: 0, children: chips),
+        if (habilitado)
         Wrap(
           spacing: 4,
           children: [
