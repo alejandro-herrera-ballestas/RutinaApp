@@ -113,7 +113,7 @@ class _ImagenStorageState extends State<ImagenStorage> {
           height: widget.height,
           fit: widget.fit,
           gaplessPlayback: true,
-          errorBuilder: (_, error, __) {
+          errorBuilder: (_, error, _) {
             debugPrint('ImagenStorage: no se pudo mostrar "${widget.ruta}": $error');
             return placeholder;
           },
