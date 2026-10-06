@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:rutina_app/screens/login_screen.dart';
+import 'package:rutina_app/screens/splash_screen.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,7 +44,9 @@ class MyApp extends StatelessWidget {
       ],
 
       navigatorObservers: [routeObserver],
-      home: const LoginScreen(),
+      // Pantalla de arranque: si hay una sesión guardada entra directo a la
+      // app; si no, muestra el Login.
+      home: const SplashScreen(),
     );
   }
 }
