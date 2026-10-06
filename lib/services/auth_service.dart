@@ -116,6 +116,29 @@ class AuthService {
     }
   }
 
+  // Carga en memoria el perfil (cuidador o paciente) del usuario de Auth.
+  // Devuelve false si el usuario existe en Auth pero no tiene perfil.
+  // Si falla la red, lanza una excepción (no devuelve false).
+  Future<bool> _cargarPerfil(String usuarioId) async {
+    final cuidador = await cuidadorService.obtenerCuidadorPorUsuarioId(usuarioId);
+    if (cuidador != null) {
+      _cuidadorActual = cuidador;
+      _pacienteActual = null;
+      await recargarPacientesDelCuidador();
+      return true;
+    }
+
+    final paciente = await pacienteService.obtenerPacientePorUsuarioId(usuarioId);
+    if (paciente != null) {
+      _pacienteActual = paciente;
+      _cuidadorActual = null;
+      pacienteSeleccionado = paciente; // un paciente siempre "ve" sus propias actividades
+      return true;
+    }
+
+    return false;
+  }
+
   Future<bool> iniciarSesion(String email, String contrasena) async {
     try {
       final response = await supabase.auth.signInWithPassword(
@@ -126,30 +149,41 @@ class AuthService {
       final authUser = response.user;
       if (authUser == null) return false;
 
-      final cuidador = await cuidadorService.obtenerCuidadorPorUsuarioId(authUser.id);
-      if (cuidador != null) {
-        _cuidadorActual = cuidador;
-        _pacienteActual = null;
-        await recargarPacientesDelCuidador();
+      final bool tienePerfil = await _cargarPerfil(authUser.id);
+
+      if (tienePerfil) {
+        // Pide permisos de notificaciones y programa los avisos
         unawaited(notificationService.activarParaSesion());
-        return true;
       }
 
-      final paciente = await pacienteService.obtenerPacientePorUsuarioId(authUser.id);
-      if (paciente != null) {
-        _pacienteActual = paciente;
-        _cuidadorActual = null;
-        pacienteSeleccionado = paciente; // un paciente siempre "ve" sus propias actividades
-        unawaited(notificationService.activarParaSesion());
-        return true;
-      }
-
-      // el usuario existe en Auth pero no tiene fila en cuidadores/pacientes
-      return false;
+      // false = el usuario existe en Auth pero no tiene fila en cuidadores/pacientes
+      return tienePerfil;
     } catch (e) {
       print('ERROR LOGIN: $e');
       rethrow;
     }
+  }
+
+  // Al abrir la app: Supabase guarda la sesión en el celular y la restaura
+  // sola. Este método carga el perfil de esa sesión para entrar directo,
+  // sin pedir correo y contraseña.
+  //   true  = sesión restaurada
+  //   false = no hay sesión guardada, o el usuario no tiene perfil
+  // Si no hay internet lanza una excepción: así la pantalla de arranque deja
+  // reintentar SIN cerrar la sesión.
+  Future<bool> restaurarSesion() async {
+    final authUser = supabase.auth.currentUser;
+    if (authUser == null) return false;
+
+    final bool tienePerfil = await _cargarPerfil(authUser.id);
+
+    if (tienePerfil) {
+      // Solo se reprograman los avisos. No se vuelven a pedir permisos en
+      // cada arranque (activarParaSesion sí los pide).
+      unawaited(notificationService.sincronizar());
+    }
+
+    return tienePerfil;
   }
 
   Future<void> cerrarSesion() async {
