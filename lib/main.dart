@@ -8,17 +8,35 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://nvevfwmpbgbbjfwlyabe.supabase.co',
-    publishableKey: 'sb_publishable_8Fz72K1oNMtI-O2g9HcXuA_dna3UmzV',
-  );
+  try {
+    await Supabase.initialize(
+      url: 'https://nvevfwmpbgbbjfwlyabe.supabase.co',
+      publishableKey: 'sb_publishable_8Fz72K1oNMtI-O2g9HcXuA_dna3UmzV',
+    );
 
-  await initializeDateFormatting('es_ES', null);
+    await initializeDateFormatting('es_ES', null);
 
-  // NUEVO: prepara las notificaciones locales (zona horaria + canal).
-  await notificationService.init();
+    try {
+      await notificationService.init();
+    } catch (e, st) {
+      debugPrint('Notificaciones no disponibles: $e\n$st');
+    }
 
-  runApp(const MyApp());
+    runApp(const MyApp());
+  } catch (e, st) {
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Text('Error al iniciar:\n$e\n\n$st'),
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class MyApp extends StatelessWidget {
