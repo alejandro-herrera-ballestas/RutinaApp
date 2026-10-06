@@ -20,18 +20,25 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _huboError = false;
 
   @override
-  void initState() {
-    super.initState();
-    _decidirPantalla();
-  }
+void initState() {
+  super.initState();
 
-  void _irA(Widget pantalla) {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => pantalla),
-    );
-  }
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _decidirPantalla();
+  });
+}
+
+  bool _navegando = false;
+
+void _irA(Widget pantalla) {
+  if (!mounted || _navegando) return;
+  _navegando = true;
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => pantalla),
+  );
+}
 
   Future<void> _decidirPantalla() async {
     if (_huboError) {
