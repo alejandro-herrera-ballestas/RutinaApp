@@ -422,11 +422,13 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ------------------ Cronómetro de la actividad ------------------
-                  CronometroActividad(
-                    inicio: inicio,
-                    duracion: widget.actividad.duracion,
-                  ),  
-                  const SizedBox(height: 30),
+                  if (!widget.actividad.completada) ...[
+                    CronometroActividad(
+                      inicio: inicio,
+                      duracion: widget.actividad.duracion,
+                    ),
+                    const SizedBox(height: 30),
+                  ],
                   // ------------------ Imagen de la actividad ------------------
                   GestureDetector(
                     onTap: _esCuidador ? _seleccionarImagen : null,
