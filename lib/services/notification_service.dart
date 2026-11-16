@@ -16,13 +16,31 @@ class NotificationService {
   // Cuántos minutos ANTES de la hora de inicio avisar (0 = justo a la hora).
   static const int minutosAntes = 0;
 
-  static const NotificationDetails _detalles = NotificationDetails(
+  static const NotificationDetails _detallesInicio = NotificationDetails(
     android: AndroidNotificationDetails(
-      'rutina_actividades',
-      'Actividades de la rutina',
-      channelDescription: 'Avisos de las actividades programadas',
+      'rutina_alarma_inicio',
+      'Inicio de actividades',
+      channelDescription: 'Alarma al empezar cada actividad',
       importance: Importance.max,
       priority: Priority.high,
+      category: AndroidNotificationCategory.alarm,
+      fullScreenIntent: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      visibility: NotificationVisibility.public,
+    ),
+    iOS: DarwinNotificationDetails(),
+  );
+
+  static const NotificationDetails _detallesFin = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'rutina_alarma_fin',
+      'Fin de actividades',
+      channelDescription: 'Alarma al terminar cada actividad',
+      importance: Importance.max,
+      priority: Priority.high,
+      category: AndroidNotificationCategory.alarm,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      visibility: NotificationVisibility.public,
     ),
     iOS: DarwinNotificationDetails(),
   );
@@ -34,22 +52,19 @@ class NotificationService {
   bool _pendiente = false;
 
   // Solo Android e iOS programan avisos. En web/Linux/Windows no hace nada
-  // (así puedes seguir probando la app en escritorio sin que falle).
   bool get _plataformaSoportada {
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
   }
 
-  // Se llama una vez en main().
+  // Se llama una vez en main()
   Future<void> init() async {
     if (_listo || !_plataformaSoportada) return;
 
     tzdata.initializeTimeZones();
 
-    // Zona horaria del celular. flutter_timezone devuelve un String en
-    // versiones viejas y un objeto con .identifier en las nuevas, por eso
-    // se usa dynamic. Si falla, se usa la de Colombia.
+    // Zona horaria del celular
     try {
       final dynamic info = await FlutterTimezone.getLocalTimezone();
       final String nombre = info is String ? info : info.identifier as String;
@@ -71,8 +86,7 @@ class NotificationService {
     _listo = true;
   }
 
-  // Pide permiso para mostrar avisos (Android 13+ / iOS) y, en Android, el
-  // permiso de alarmas exactas para que suenen puntuales.
+  // Pide permiso para mostrar avisos 
   Future<bool> pedirPermisos() async {
     if (!_listo) return false;
 
@@ -189,7 +203,7 @@ class NotificationService {
     return await android.canScheduleExactNotifications() ?? false;
   }
 
-  // Un aviso semanal por cada día de la semana marcado en la actividad.
+    // Un aviso de inicio y uno de fin por cada dia de la semana marcado
   Future<void> _programarActividad(
     Actividad actividad,
     String? nombrePaciente,
@@ -197,31 +211,54 @@ class NotificationService {
   ) async {
     final String titulo = nombrePaciente == null
         ? actividad.nombre
-        : '${actividad.nombre} · $nombrePaciente';
+        : '${actividad.nombre} - $nombrePaciente';
 
     final String cuerpo = actividad.descripcion.trim().isNotEmpty
         ? actividad.descripcion
         : 'Es hora de empezar (${actividad.duracion.inMinutes} min)';
 
+    final modo = exactas
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+
+    // Hora de fin = hora de inicio + duracion
+    final int inicioMin = actividad.hora.hour * 60 + actividad.hora.minute;
+    final int finMin = inicioMin + actividad.duracion.inMinutes;
+    final int diasExtra = finMin ~/ 1440; // 1 si pasa de medianoche
+    final TimeOfDay horaFin = TimeOfDay(
+      hour: (finMin % 1440) ~/ 60,
+      minute: finMin % 60,
+    );
+
     for (final dia in actividad.diasSemana) {
+      // Aviso de inicio
       await _plugin.zonedSchedule(
         id: _idNotificacion(actividad.id, dia),
         title: titulo,
         body: cuerpo,
         scheduledDate: _proximoAviso(dia, actividad.hora),
-        notificationDetails: _detalles,
-        androidScheduleMode: exactas
-            ? AndroidScheduleMode.exactAllowWhileIdle
-            : AndroidScheduleMode.inexactAllowWhileIdle,
-        // Se repite cada semana el mismo día de la semana y a la misma hora
+        notificationDetails: _detallesInicio,
+        androidScheduleMode: modo,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: actividad.id,
+      );
+
+      // Aviso de fin (si cruza medianoche cae el dia siguiente)
+      final int diaFin = ((dia - 1 + diasExtra) % 7) + 1;
+      await _plugin.zonedSchedule(
+        id: _idNotificacion(actividad.id, dia, fin: true),
+        title: 'Tiempo terminado',
+        body: titulo,
+        scheduledDate: _proximoAviso(diaFin, horaFin),
+        notificationDetails: _detallesFin,
+        androidScheduleMode: modo,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         payload: actividad.id,
       );
     }
   }
 
-  // Próxima fecha futura en que cae ese día de la semana (1 = lunes ...
-  // 7 = domingo) a esa hora, menos los minutos de anticipación.
+  // Próxima fecha futura en que cae ese día de la semana 
   tz.TZDateTime _proximoAviso(int diaSemana, TimeOfDay hora) {
     final ahora = tz.TZDateTime.now(tz.local);
 
@@ -254,15 +291,13 @@ class NotificationService {
     );
   }
 
-  // Cada aviso necesita un id entero único y que no cambie entre
-  // ejecuciones (así se puede cancelar luego). Se calcula con un hash
-  // fijo (FNV-1a) del id de la actividad + el día de la semana (1..7).
-  int _idNotificacion(String actividadId, int diaSemana) {
-    int hash = 0x811c9dc5;
-    for (final unidad in actividadId.codeUnits) {
-      hash ^= unidad;
-      hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    }
-    return ((hash & 0xFFFFFF) << 3) | diaSemana;
+  int _idNotificacion(String actividadId, int diaSemana, {bool fin = false}) {
+  int hash = 0x811c9dc5;
+  for (final unidad in actividadId.codeUnits) {
+    hash ^= unidad;
+    hash = (hash * 0x01000193) & 0xFFFFFFFF;
   }
+  final extra = fin ? 8 : 0;
+  return ((hash & 0xFFFFFF) << 4) | (diaSemana + extra);
+}
 }
