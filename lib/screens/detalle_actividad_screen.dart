@@ -9,6 +9,7 @@ import 'package:rutina_app/services/storage_service.dart';
 import 'package:rutina_app/utils/global.dart';
 import 'package:rutina_app/widgets/imagen_storage.dart';
 import 'package:rutina_app/widgets/selector_dias.dart';
+import 'package:rutina_app/widgets/cronometro_actividad.dart';
 
 class DetalleActividadScreen extends StatefulWidget {
   final Actividad actividad;
@@ -357,6 +358,17 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    // Para el cronómetro, se necesita la hora de inicio de la actividad en la fecha que
+    // se está viendo
+  final h = widget.actividad.hora;
+    final inicio = DateTime(
+      widget.fecha.year,
+      widget.fecha.month,
+      widget.fecha.day,
+      h.hour,
+      h.minute,
+    );
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F2),
       appBar: AppBar(
@@ -409,6 +421,11 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ------------------ Cronómetro de la actividad ------------------
+                  CronometroActividad(
+                    inicio: inicio,
+                    duracion: widget.actividad.duracion,
+                  ),  
                   // ------------------ Imagen de la actividad ------------------
                   GestureDetector(
                     onTap: _esCuidador ? _seleccionarImagen : null,
