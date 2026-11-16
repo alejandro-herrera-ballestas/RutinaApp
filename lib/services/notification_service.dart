@@ -9,16 +9,9 @@ import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/paciente.dart';
 import 'package:rutina_app/utils/global.dart';
 
-// Notificaciones LOCALES: se programan en el celular de quien usa la app.
-// - Si inicia sesión un paciente: avisos de sus actividades.
-// - Si inicia sesión un cuidador: avisos de las actividades de TODOS sus
-//   pacientes (con el nombre del paciente en el título).
-//
-// Cada actividad programa un aviso semanal por cada día marcado.
-// Se vuelve a sincronizar al iniciar sesión y cada vez que se crea,
-// edita o elimina una actividad, o se vincula/desvincula alguien.
-//
-// Escrito para flutter_local_notifications 22.x (parámetros con nombre).
+// notificaciones locales
+// Se encarga de programar avisos para las actividades de la rutina
+// solo en Android e iOS
 class NotificationService {
   // Cuántos minutos ANTES de la hora de inicio avisar (0 = justo a la hora).
   static const int minutosAntes = 0;
