@@ -426,6 +426,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
                     inicio: inicio,
                     duracion: widget.actividad.duracion,
                   ),  
+                  const SizedBox(height: 30),
                   // ------------------ Imagen de la actividad ------------------
                   GestureDetector(
                     onTap: _esCuidador ? _seleccionarImagen : null,
