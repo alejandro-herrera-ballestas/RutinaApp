@@ -101,6 +101,7 @@ class NotificationService {
       if (!exactas) {
         await android.requestExactAlarmsPermission();
       }
+            await android.requestFullScreenIntentPermission();
     }
 
     final ios = _plugin.resolvePlatformSpecificImplementation<
