@@ -58,6 +58,7 @@ void _irA(Widget pantalla) {
 
       if (restaurada) {
         _irA(const MainNavigatorScreen());
+        notificationService.abrirPendiente();
       } else {
         // La sesión existe pero la cuenta no tiene perfil: se cierra
         await supabase.auth.signOut();
