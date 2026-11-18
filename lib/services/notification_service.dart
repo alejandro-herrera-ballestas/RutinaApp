@@ -133,23 +133,21 @@ class NotificationService {
     }
   }
 
-  // Borra todos los avisos y los vuelve a programar según lo que hay en
-  // Supabase. Si se llama mientras ya está sincronizando, espera y repite
-  // una vez más al terminar (para no perder el último cambio).
+  // Borra todos los avisos y los vuelve a programar según lo que hay en la basd de datos
   Future<void> sincronizar() async {
     if (!_listo) return;
 
-    if (_sincronizando) {
+    if (_sincronizando) { // Si ya se está sincronizando, se marca que hay un cambio pendiente
       _pendiente = true;
       return;
     }
-
+// Si no se está sincronizando, se hace la sincronización
     _sincronizando = true;
     try {
       do {
-        _pendiente = false;
-        await _sincronizarUnaVez();
-      } while (_pendiente);
+        _pendiente = false; // Se borra la marca de pendiente antes de sincronizar, para que si durante la sincronización se marca otra vez, quede pendiente para la siguiente iteración
+        await _sincronizarUnaVez(); // Se hace la sincronización una vez
+      } while (_pendiente); // Si durante la sincronización se marcó que hay un cambio pendiente, se vuelve a sincronizar
     } catch (e) {
       debugPrint('Error al sincronizar los avisos: $e');
     } finally {
