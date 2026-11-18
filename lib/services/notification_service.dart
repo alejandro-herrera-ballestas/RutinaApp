@@ -1,5 +1,6 @@
+import 'package:rutina_app/screens/detalle_actividad_screen.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:flutter/material.dart' show TimeOfDay, MaterialPageRoute;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -11,7 +12,6 @@ import 'package:rutina_app/utils/global.dart';
 
 // notificaciones locales
 // Se encarga de programar avisos para las actividades de la rutina
-// solo en Android e iOS
 class NotificationService {
   // Cuántos minutos ANTES de la hora de inicio avisar (0 = justo a la hora).
   static const int minutosAntes = 0;
@@ -47,6 +47,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
+  // Id de la actividad de una alarma tocada antes de que la sesion estuviera lista
+  String? _payloadPendiente;
   bool _listo = false;
   bool _sincronizando = false;
   bool _pendiente = false;
@@ -82,7 +84,17 @@ class NotificationService {
       ),
     );
 
-    await _plugin.initialize(settings: configuracion);
+        await _plugin.initialize( // Se llama al tocar un aviso
+      settings: configuracion,
+      onDidReceiveNotificationResponse: _alTocar,
+    );
+
+    // Si la app estaba cerrada y la abrio una alarma, guardamos su id
+    final detallesInicio = await _plugin.getNotificationAppLaunchDetails();
+    if (detallesInicio != null && detallesInicio.didNotificationLaunchApp) {
+      _payloadPendiente = detallesInicio.notificationResponse?.payload;
+    }
+
     _listo = true;
   }
 
@@ -200,6 +212,54 @@ class NotificationService {
         AndroidFlutterLocalNotificationsPlugin>();
     if (android == null) return true;
     return await android.canScheduleExactNotifications() ?? false;
+  }
+
+    // La sesion esta lista cuando ya se cargo el cuidador o el paciente
+  bool get _sesionCargada {
+    return supabase.auth.currentUser != null &&
+        (authService.cuidadorActual != null ||
+            authService.pacienteActual != null);
+  }
+
+  void _alTocar(NotificationResponse respuesta) {
+    _abrirActividad(respuesta.payload);
+  }
+
+  // Lo llama el Splash cuando ya entro a la app
+  Future<void> abrirPendiente() async {
+    final id = _payloadPendiente;
+    if (id == null) return;
+    _payloadPendiente = null;
+    await _abrirActividad(id);
+  }
+
+  Future<void> _abrirActividad(String? id) async {
+    if (id == null || id.isEmpty) return;
+
+    // Si todavia no hay sesion o pantalla, se deja guardado para despues
+    if (!_sesionCargada || navigatorKey.currentState == null) {
+      _payloadPendiente = id;
+      return;
+    }
+
+    try {
+      final actividad = await actividadService.obtenerActividad(id);
+      final hoy = DateTime.now();
+
+      // Le pone el progreso de hoy (completada o no)
+      await actividadService.filtrarDiaConProgreso([actividad], hoy);
+
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          builder: (_) => DetalleActividadScreen(
+            actividad: actividad,
+            fecha: hoy,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('No se pudo abrir la actividad de la alarma: $e');
+    }
   }
 
     // Un aviso de inicio y uno de fin por cada dia de la semana marcado
