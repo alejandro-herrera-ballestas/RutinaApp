@@ -25,6 +25,7 @@ void main() async {
     runApp(const MyApp());
   } catch (e, st) {
     runApp(MaterialApp(
+      navigatorKey: navigatorKey,
       home: Scaffold(
         body: SafeArea(
           child: Padding(
