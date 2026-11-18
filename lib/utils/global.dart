@@ -16,3 +16,5 @@ final Horario horarioDelDia = Horario(bloques: []);
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 final SupabaseClient supabase = Supabase.instance.client;
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
