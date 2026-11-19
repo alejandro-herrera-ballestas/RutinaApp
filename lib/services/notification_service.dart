@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'dart:typed_data';
 
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/paciente.dart';
@@ -16,9 +17,9 @@ class NotificationService {
   // Cuántos minutos ANTES de la hora de inicio avisar (0 = justo a la hora).
   static const int minutosAntes = 0;
 
-  static const NotificationDetails _detallesInicio = NotificationDetails(
+    static final NotificationDetails _detallesInicio = NotificationDetails(
     android: AndroidNotificationDetails(
-      'rutina_alarma_inicio',
+      'rutina_alarma_inicio_v2',
       'Inicio de actividades',
       channelDescription: 'Alarma al empezar cada actividad',
       importance: Importance.max,
@@ -27,13 +28,15 @@ class NotificationService {
       fullScreenIntent: true,
       audioAttributesUsage: AudioAttributesUsage.alarm,
       visibility: NotificationVisibility.public,
+      sound: const RawResourceAndroidNotificationSound('alarma'),
+      additionalFlags: Int32List.fromList(<int>[4]),
     ),
-    iOS: DarwinNotificationDetails(),
+    iOS: const DarwinNotificationDetails(),
   );
 
-  static const NotificationDetails _detallesFin = NotificationDetails(
+  static final NotificationDetails _detallesFin = NotificationDetails(
     android: AndroidNotificationDetails(
-      'rutina_alarma_fin',
+      'rutina_alarma_fin_v2',
       'Fin de actividades',
       channelDescription: 'Alarma al terminar cada actividad',
       importance: Importance.max,
@@ -41,8 +44,10 @@ class NotificationService {
       category: AndroidNotificationCategory.alarm,
       audioAttributesUsage: AudioAttributesUsage.alarm,
       visibility: NotificationVisibility.public,
+      sound: const RawResourceAndroidNotificationSound('alarma'),
+      additionalFlags: Int32List.fromList(<int>[4]),
     ),
-    iOS: DarwinNotificationDetails(),
+    iOS: const DarwinNotificationDetails(),
   );
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
