@@ -5,7 +5,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-import 'dart:typed_data';
 
 import 'package:rutina_app/models/actividad.dart';
 import 'package:rutina_app/models/paciente.dart';
@@ -363,5 +362,57 @@ class NotificationService {
   }
   final extra = fin ? 8 : 0;
   return ((hash & 0xFFFFFF) << 4) | (diaSemana + extra);
-}
+  }
+    // Notificacion fija con cuenta regresiva mientras dura la actividad
+  Future<void> mostrarCuentaRegresiva(Actividad actividad, DateTime fecha) async {
+    if (!_listo) return;
+
+    final inicio = DateTime(
+      fecha.year,
+      fecha.month,
+      fecha.day,
+      actividad.hora.hour,
+      actividad.hora.minute,
+    );
+    final fin = inicio.add(actividad.duracion);
+    final ahora = DateTime.now();
+
+    // Solo si la actividad esta en curso
+    if (ahora.isBefore(inicio) || !ahora.isBefore(fin)) return;
+
+    final detalles = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'rutina_cuenta_regresiva',
+        'Cuenta regresiva',
+        channelDescription: 'Tiempo que falta para terminar la actividad',
+        importance: Importance.low,
+        priority: Priority.low,
+        visibility: NotificationVisibility.public,
+        ongoing: true,
+        autoCancel: false,
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        showWhen: true,
+        when: fin.millisecondsSinceEpoch,
+        usesChronometer: true,
+        chronometerCountDown: true,
+        timeoutAfter: fin.difference(ahora).inMilliseconds,
+      ),
+    );
+
+    // Dia 0 con fin queda en el id 8, que no usan los otros avisos
+    await _plugin.show(
+      id: _idNotificacion(actividad.id, 0, fin: true),
+      title: actividad.nombre,
+      body: 'Tiempo restante',
+      notificationDetails: detalles,
+      payload: actividad.id,
+    );
+  }
+
+  Future<void> cancelarCuentaRegresiva(String actividadId) async {
+    if (!_listo) return;
+    await _plugin.cancel(id: _idNotificacion(actividadId, 0, fin: true));
+  }
 }
