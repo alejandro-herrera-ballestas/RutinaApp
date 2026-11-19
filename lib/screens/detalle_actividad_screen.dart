@@ -296,6 +296,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
         widget.fecha,
         true,
       );
+      notificationService.cancelarCuentaRegresiva(widget.actividad.id);
       if (!mounted) return;
       setState(() {
         widget.actividad.completada = true;
