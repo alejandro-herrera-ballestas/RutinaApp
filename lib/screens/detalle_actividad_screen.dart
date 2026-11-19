@@ -13,8 +13,6 @@ import 'package:rutina_app/widgets/cronometro_actividad.dart';
 
 class DetalleActividadScreen extends StatefulWidget {
   final Actividad actividad;
-  // Fecha que se está viendo (hoy, si se abrió desde Inicio; o la fecha
-  // elegida en el Calendario). Determina en qué día se marca el progreso.
   final DateTime fecha;
 
   const DetalleActividadScreen({
@@ -36,19 +34,17 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
   final ImagePicker _picker = ImagePicker();
   TimeOfDay? _horaSeleccionada;
 
-  // Solo se llena si el usuario ELIGE una imagen nueva. Mientras sea null se
-  // muestra la imagen actual, que vive en Storage (widget.actividad.rutaIMG).
+  // Solo se llena si el usuario ELIGE una imagen nueva
   File? _imagenNueva;
 
   Duration _duracionSeleccionada = const Duration(minutes: 15);
 
-  // NUEVO: días de la semana en que se repite
+  // días de la semana en que se repite
   List<int> _diasSeleccionados = [];
 
-  bool _procesando = false; // evita doble tap mientras se guarda/elimina/completa
+  bool _procesando = false; 
 
-  // Solo el CUIDADOR puede editar o eliminar. El paciente únicamente ve la
-  // actividad y la marca como completada (la base de datos también lo exige).
+  // Solo el CUIDADOR puede editar o eliminar
   bool get _esCuidador => authService.cuidadorActual != null;
 
   @override
@@ -71,6 +67,9 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(texto), backgroundColor: color),
     );
+        if (!_esCuidador && !widget.actividad.completada) {
+      notificationService.mostrarCuentaRegresiva(widget.actividad, widget.fecha);
+    }
   }
 
   // Id del paciente dueño de la actividad
@@ -255,8 +254,7 @@ class _DetalleActividadScreenState extends State<DetalleActividadScreen> {
       if (!mounted) return;
 
       // Si se cambiaron los días y ya no incluyen el día que se estaba
-      // viendo, la actividad dejará de verse aquí. Se avisa para que no
-      // parezca que se borró.
+      // viendo, la actividad dejará de verse aqui
       final bool sigueEnEsteDia =
           _diasSeleccionados.contains(widget.fecha.weekday);
 
